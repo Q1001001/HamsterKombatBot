@@ -20,7 +20,7 @@
             "eventIdType": "uuid",
             "eventOrigin": "undefined",
             "eventType": null,
-            "delay": 300,
+            "delay": 400,
             "delayRetry": 20
         },
         "fe693b26-b342-4159-8808-15e3ff7f8767": {
@@ -36,7 +36,7 @@
             "eventOrigin": "undefined",
             "eventType": "MiniQuest",
             "delay": 1800,
-            "delayRetry": 120
+            "delayRetry": 20
         },
         "b4170868-cef0-424f-8eb9-be0622e8e8e3": {
             "name": "Chain Cube 2024",
@@ -50,7 +50,7 @@
             "eventIdType": "uuid",
             "eventOrigin": "undefined",
             "eventType": "cube_sent",
-            "delay": 300,
+            "delay": 200,
             "delayRetry": 20
         },
         "c4480ac7-e178-4973-8061-9ed5b2e17954": {
@@ -66,7 +66,7 @@
             "eventOrigin": "undefined",
             "eventType": "hitStatue",
             "delay": 300,
-            "delayRetry": 20
+            "delayRetry": 30
         },
         "dc128d28-c45b-411c-98ff-ac7726fbaea4": {
             "name": "Merge Away",
@@ -106,11 +106,41 @@
             "x-unity-version": "2021.3.39f1",
             "clientOrigin": "android",
             "clientIdType": "type1",
-            "clientVersion": null,
+            "clientVersion": "1.15.2",
             "eventIdType": "uuid",
             "eventOrigin": "undefined",
             "eventType": "test",
             "delay": 400,
+            "delayRetry": 20
+        },
+        "ef319a80-949a-492e-8ee0-424fb5fc20a6": {
+            "name": "Mow and Trim",
+            "appToken": "ef319a80-949a-492e-8ee0-424fb5fc20a6",
+            "promoId": "ef319a80-949a-492e-8ee0-424fb5fc20a6",
+            "userAgent": "UnityPlayer/2021.3.17f1 (UnityWebRequest/1.0, libcurl/7.84.0-DEV)",
+            "x-unity-version": "2021.3.17f1",
+            "clientOrigin": "android",
+            "clientIdType": "type1",
+            "clientVersion": null,
+            "eventIdType": "StartLevel",
+            "eventOrigin": "undefined",
+            "eventType": null,
+            "delay": 300,
+            "delayRetry": 20
+        },
+        "8814a785-97fb-4177-9193-ca4180ff9da8": {
+            "name": "Mud Racing",
+            "appToken": "8814a785-97fb-4177-9193-ca4180ff9da8",
+            "promoId": "8814a785-97fb-4177-9193-ca4180ff9da8",
+            "userAgent": "UnityPlayer/2022.3.40f1 (UnityWebRequest/1.0, libcurl/8.5.0-DEV)",
+            "x-unity-version": "2022.3.40f1",
+            "clientOrigin": "android",
+            "clientIdType": "uuid",
+            "clientVersion": null,
+            "eventIdType": "uuid",
+            "eventOrigin": "undefined",
+            "eventType": "racing",
+            "delay": 300,
             "delayRetry": 20
         }
     },

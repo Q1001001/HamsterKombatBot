@@ -51,8 +51,12 @@ logger = logger.opt(colors=True)
 class MainConfig():
     def __init__(self) -> None:
         self._filepath = os.path.join(os.path.dirname(__file__), "conf.json")
-        self.userAgent = UserAgent().safari
+        self._promoGamesCollect = []
         self.loadConfig()
+        logger.info(f"conf.json init".center(SEP_LENGTH, "-"))
+        
+    def __del__(self):
+        logger.info(f"<red>conf.json destroyed</red>".center(SEP_LENGTH + 11, "-"))
 
     @logger.catch
     def loadConfig(self) -> bool:
@@ -70,6 +74,9 @@ class MainConfig():
         except json.JSONDecodeError as er:
             logger.error(f"Wrong file {self._filepath}: {er}")
             return False
+        
+        if "promoGames" in self.configRAW:
+            self.promoGames = self.configRAW["promoGames"]
 
         options = self.configRAW.get("options")
         if not options:
@@ -82,65 +89,127 @@ class MainConfig():
         self.defaultDelay = options.get("defaultDelay")
         self.enablePromoGames = options.get("enablePromoGames")
         return True
-
+    
+    @property
+    def promoGames(self) -> dict:
+        if not hasattr(self, "_promoGames"):
+            return {}
+        return self._promoGames
+    
+    @promoGames.setter
+    def promoGames(self, value):
+        self._promoGames = value
+    
+    def promoGamesCollect(self, client: object = None) -> dict:
+        if client:
+            if client.isAllKeysCollected:
+                if client in self._promoGamesCollect:
+                    self._promoGamesCollect.remove(client)
+            elif not client in self._promoGamesCollect:
+                self._promoGamesCollect.append(client)
+        return self._promoGamesCollect
+    
     def initClients(self) -> None:
         clients = self.configRAW["clients"]
-        self.__clients = [Client(**clients[user]) for user in clients]
-        self.lenClients = len(self.__clients)
+        self._clients = [Client(mainConfig=self, **clients[user]) for user in clients]
+        self._lenClients = len(self._clients)
+        logger.info("-" * SEP_LENGTH + "\n")
+        
+    @property
+    def lenClients(self):
+        if not hasattr(self, "_lenClients"):
+            return 0
+        return self._lenClients
+        
+    @property
+    def clients(self):
+        if not hasattr(self, "_clients"):
+            return []
+        return self._clients
 
+    @logger.catch
     def getHamster(self, index: int = 0) -> object:
-        if index > len(self.__clients):
+        if index > self.lenClients:
             return None
-        return self.__clients[index]
+        return self.clients[index]
+    
+    def getHamsterByName(self, hamsterName: str) -> object:
+        if hamsterName:
+            for client in self.clients:
+                if client.name == hamsterName:
+                    return client
+        return None
+    
+    def updateConfig(self) -> None:
+        logger.info("conf.json".ljust(30, " ") + "\tUpdate config")
+        logger.info("-" * SEP_LENGTH)
+        curMainConfig = {
+            "enableTaps": self.enableTaps,
+            "enableDailyTasks": self.enableDailyTasks,
+            "enableDailyCipher": self.enableDailyCipher,
+            "enableUpgrade": self.enableUpgrade,
+            "enablePromoGames": self.enablePromoGames,
+            "defaultDelay": self.defaultDelay
+        }
+        self.loadConfig()
+        for confItem in curMainConfig:
+            if curMainConfig.get(confItem) != self.__getattribute__(confItem):
+                if isinstance(self.__getattribute__(confItem), bool):
+                    if self.__getattribute__(confItem):
+                        logger.info(f"{confItem}".ljust(30, " ") + "\t<green>True</green>")
+                    else:
+                        logger.info(f"{confItem}".ljust(30, " ") + "\t<red>False</red>")
+                else:
+                    logger.info(f"{confItem}".ljust(30, " ") + f"\t<green>{self.__getattribute__(confItem)}</green>")
+                        
+        configData = self.configRAW
+        if self.clients:
+            clientsNames = [client.name for client in self.clients]
+            for clientName in clientsNames:
+                if not clientName in configData["clients"]:
+                    clientObj = self.getHamsterByName(clientName)
+                    self.clients.remove(clientObj)
+
+        for clientName in configData["clients"]:
+            clientObj = self.getHamsterByName(clientName)
+            if clientObj:
+                clientObj.updateConfig(self, configData["clients"])
+                logger.info(f"{clientName}".ljust(30, " ") + "\tUpdated")
+            else:
+                self.clients.append(Client(configData["promoGames"], self, **configData["clients"][clientName]))
+        logger.info("-" * SEP_LENGTH + "\n\n")
 
     @logger.catch
     def minDelay(self) -> int:
         minDelay = self.defaultDelay
-        minDelayClient = min(
-            self.__clients, key=lambda clientDelay: clientDelay.minDelay)
+        minDelayClient = min(self.clients, key=lambda clientDelay: clientDelay.minDelay)
         if minDelayClient.minDelay < minDelay:
             minDelay = minDelayClient.minDelay
         return minDelay
 
-    def _request(self, method: str = "POST", url: str = "", headers: dict = None, data: dict = None) -> dict:
-        defaultHeaders = {
-            "Accept": "*/*",
-            "Connection": "keep-alive",
-            "Host": "api.hamsterkombatgame.io",
-            "Origin": "https://hamsterkombatgame.io",
-            "Referer": "https://hamsterkombatgame.io/",
-            "Sec-Fetch-Dest": "empty",
-            "Sec-Fetch-Mode": "cors",
-            "Sec-Fetch-Site": "same-site",
-            "User-Agent": self.userAgent,
-        }
-        if not headers is None:
-            for key, value in headers.items():
-                defaultHeaders[key] = value
-        try:
-            if method == "GET":
-                response = requests.get(url, headers=defaultHeaders)
-            elif method == "POST":
-                response = requests.post(
-                    url, headers=defaultHeaders, data=json.dumps(data))
-            elif method == "OPTIONS":
-                response = requests.options(url, headers=defaultHeaders)
-            else:
-                err_msg = f"Invalid method: {method}"
-                return {"error_message": err_msg}
-
-            return response.json()
-        except Exception as e:
-            err_msg = f"Error: {e}"
-            return {"error_message": err_msg}
-
 
 class PromoGame(MainConfig):
-    def __init__(self, **kwargs):
-        super(PromoGame, self).__init__()
+    def __init__(self, hamsterName: str = "", **kwargs):
+        self.promoId = kwargs.get("promoId")
+        self.hamsterName = hamsterName
+        self.isActive = False
+        self.setInitValues(**kwargs)
+        self.hasCode = False
+        self.isLogin = False
+        self.userHeaders = {
+            "Host": "api.gamepromo.io",
+            "Origin": "",
+            "Referer": "",
+            "Content-Type": "application/json; charset=utf-8",
+        }
+        logger.info(f"{self.name}".ljust(30, " ") + f"\t<green>added</green> to {self.hamsterName}")
+        
+    def __del__(self):
+        logger.info(f"{self.name}".ljust(30, " ") + f"\t<red>removed</red> from {self.hamsterName}")
+        
+    def setInitValues(self, **kwargs) -> None:
         self.name = kwargs.get("name")
         self.appToken = kwargs.get("appToken")
-        self.promoId = kwargs.get("promoId")
         self.userAgent = kwargs.get("userAgent")
         self.x_unity_version = kwargs.get("x-unity-version")
         self.clientOrigin = kwargs.get("clientOrigin")
@@ -151,19 +220,24 @@ class PromoGame(MainConfig):
         self.eventType = kwargs.get("eventType")
         self.delay = kwargs.get("delay")
         self.delayRetry = kwargs.get("delayRetry")
-        self.hasCode = False
-        self.isLogin = False
-        self.userHeaders = {
-            "Host": "api.gamepromo.io",
-            "Origin": "",
-            "Referer": "",
-            "Content-Type": "application/json; charset=utf-8",
-        }
-
+        self.isActive = True
+        
+    def updateState(self, state: dict) -> None:
+        self.title = state["title"]
+        self.receiveKeysToday = state["receiveKeysToday"]
+        self.keysPerDay = state["keysPerDay"]
+    
+        
+    def updateConfig(self, promoGames: dict) -> None:
+        promoGameData = promoGames.get(self.promoId)
+        if promoGameData:
+            self.setInitValues(**promoGameData)
+        else:
+            self.isActive = False
+        
     @logger.catch
     def genPromoKey(self) -> str:
-        logger.info(f"Generate promo-key for {self.name}")
-        logger.info("-" * SEP_LENGTH)
+        logger.info(f"Generate {self.name} promo-key")
         promoKey = ""
         if not self.isLogin:
             self._updatePromoGameData(self.loginClien())
@@ -173,11 +247,12 @@ class PromoGame(MainConfig):
         retryCount = 1
         retryMax = int(self.delay / self.delayRetry)
         while retryCount <= retryMax and not self.hasCode:
+            delayRetry = self.delayRetry + random.randint(0, 5)
             logger.info("Attempt to register an event " +
                         "{rC}".format(rC=retryCount).rjust(2, " ") + " / " +
                         "{rM}".format(rM=retryMax).rjust(2, " ") + " (retryDelay: ~" +
-                        "{dR}".format(dR=self.delayRetry) + " sec)")
-            time.sleep(self.delayRetry + random.randint(1, 5))
+                        "{dR}".format(dR=delayRetry) + " sec)")
+            time.sleep(delayRetry)
             self._updatePromoGameData(self.registerEvent())
             retryCount += 1
 
@@ -195,7 +270,7 @@ class PromoGame(MainConfig):
         userData = {
             "promoId": self.promoId
         }
-        return self._request(url=PROMO_CREATE_CODE, headers=self.userHeaders, data=userData)
+        return request(url=PROMO_CREATE_CODE, headers=self.userHeaders, data=userData)
 
     def registerEvent(self) -> dict:
         eventId = self.eventIdType
@@ -210,7 +285,7 @@ class PromoGame(MainConfig):
             userData.update({
                 "eventType": self.eventType
             })
-        return self._request(url=PROMO_REGISTER_EVENT, headers=self.userHeaders, data=userData)
+        return request(url=PROMO_REGISTER_EVENT, headers=self.userHeaders, data=userData)
 
     def loginClien(self) -> dict:
         clientID = f"{int(time.time() * 1000)}-{''.join(str(random.randint(0, 9)) for _ in range(19))}"
@@ -232,7 +307,7 @@ class PromoGame(MainConfig):
             self.userHeaders.update({
                 "X-Unity-Version": self.x_unity_version
             })
-        return self._request(url=PROMO_LOGIN, headers=self.userHeaders, data=userData)
+        return request(url=PROMO_LOGIN, headers=self.userHeaders, data=userData)
 
     def _updatePromoGameData(self, data: dict) -> None:
         if "error_message" in data:
@@ -254,17 +329,22 @@ class PromoGame(MainConfig):
             self.promoCode = data["promoCode"]
 
 
-class Client(MainConfig):
-    def __init__(self, **kwargs):
-        super(Client, self).__init__()
+class Client():
+    def __init__(self, mainConfig: object, **kwargs):
         self.name = kwargs.get("name")
+        self._promoGamesObj = []
+        self.isAllKeysCollected = False
+        self.setInitValues(mainConfig=mainConfig, **kwargs)
+        logger.info(f"{self.name}".ljust(30, " ") + f"\t<green>added</green>")
+
+    def __del__(self):
+        logger.info(f"{self.name}".ljust(30, " ") + f"\t<red>removed</red>")
+        
+    def setInitValues(self, mainConfig: object, **kwargs) -> None:
         self.token = kwargs.get("token")
+        self.mainConfig = mainConfig
         self.limitCoinPrice = kwargs.get("limitCoinPrice")
         self.minBalance = kwargs.get("minBalance")
-        self.__promoGames = [PromoGame(**self.configRAW["promoGames"][game])
-                             for game in self.configRAW["promoGames"]]
-        self.lenPromoGames = len(self.__promoGames)
-        self.minDelay = 0
         self.excludeItems = []
         if kwargs.get("excludeItems"):
             self.excludeItems.extend(kwargs.get("excludeItems"))
@@ -273,6 +353,27 @@ class Client(MainConfig):
             "Accept": "application/json",
             "Content-Type": "application/json",
         }
+        self._updateClientUserData(request(url=GET_PROMOS, headers=self.userHeaders))
+        self.minDelay = 0
+    
+    @property
+    def promoGamesObj(self):
+        if not hasattr(self, "_promoGamesObj"):
+            return []
+        return self._promoGamesObj
+    
+    def updateConfig(self, mainConfig: object, clients: dict) -> None:
+        clientData = clients[self.name]
+        if clientData:
+            self.setInitValues(mainConfig, **clientData)
+            logger.info("-" * SEP_LENGTH)
+    
+    def getPromoGameByID(self, promoID: str) -> object:
+        if self.promoGamesObj:
+            for promoGame in self.promoGamesObj:
+                if promoGame.promoId == promoID:
+                    return promoGame
+        return None
 
     @logger.catch
     def sync(self) -> None:
@@ -287,17 +388,16 @@ class Client(MainConfig):
             GET_PROMOS
         ]
         for requestURL in url_list:
-            resultData = self._request(
-                url=requestURL, headers=self.userHeaders)
+            resultData = request(url=requestURL, headers=self.userHeaders)
             self._updateClientUserData(resultData)
 
-        if self.enableTaps:
+        if self.mainConfig.enableTaps:
             while self.availableTaps > self.maxTaps / 2:
                 self._updateClientUserData(self.tap())
                 if self.availableTaps < self.maxTaps / self.earnPerTap:
                     self._updateClientUserData(self.boostTap())
 
-        if self.enableDailyCipher:
+        if self.mainConfig.enableDailyCipher:
             logger.info("<b>Check daily ciphers...</b>")
             if self.morseGame:
                 logger.info(f"{'Morse-Game'.ljust(30, ' ')}\tAlready claimed")
@@ -314,15 +414,14 @@ class Client(MainConfig):
                     logger.info(f"{'Mini-Game'.ljust(30, ' ')}\t<green>Claimed</green> ({self.totalKeys})")
             logger.info("-" * SEP_LENGTH)
 
-        if self.enableDailyTasks:
+        if self.mainConfig.enableDailyTasks:
             logger.info("<b>Check daily tasks...</b>")
             if self.isStreakDays:
                 logger.info(f"{'streak_days'.ljust(30, ' ')}\tAlready claimed")
             else:
                 self._updateClientUserData(self.streakDays())
                 if self.isStreakDays:
-                    logger.info(f"{'streak_days'.ljust(
-                        30, ' ')}\t<green>Claimed</green>")
+                    logger.info(f"{'streak_days'.ljust(30, ' ')}\t<green>Claimed</green>")
 
             if self.combo:
                 logger.info(f"{'dailyCombo'.ljust(30, ' ')}\tAlready claimed")
@@ -334,17 +433,16 @@ class Client(MainConfig):
                     logger.info(f"{'dailyCombo'.ljust(30, ' ')}\t<green>Claimed</green>")
             logger.info("-" * SEP_LENGTH)
 
-        if self.enablePromoGames:
+        if self.mainConfig.enablePromoGames:
             logger.info("<b>Promo-games state...</b>")
-            for item in self.promoGames:
-                promoGameState = self._getPromoGameState(item)
-                logger.info("{promoName}".format(promoName=promoGameState["title"]).ljust(30, " ") + "\t" +
-                            "{rKD}".format(rKD=promoGameState["receiveKeysToday"]) + " / " +
-                            "{kPD}".format(kPD=promoGameState["keysPerDay"])
+            for gameObj in self.promoGamesObj:
+                logger.info("{promoName}".format(promoName=gameObj.title).ljust(30, " ") + "\t" +
+                            "{rKD}".format(rKD=gameObj.receiveKeysToday) + " / " +
+                            "{kPD}".format(kPD=gameObj.keysPerDay)
                             )
             logger.info("-" * SEP_LENGTH)
 
-        if self.enableUpgrade:
+        if self.mainConfig.enableUpgrade:
             logger.info("<b>Check upgrades...</b>")
             for item in self.upgradesForBuy[:10]:
                 if self._isUpgradable(item):
@@ -356,78 +454,65 @@ class Client(MainConfig):
             logger.info("-" * SEP_LENGTH)
 
     def promoGameKeyGen(self) -> None:
-        if self.enablePromoGames:
+        if self.mainConfig.enablePromoGames and self._isNeedPromoGamesKeyGen():
             logger.info(f"{self.name} - Generate promo keys...")
             logger.info("-" * SEP_LENGTH)
-            for item in self.promoGames:
-                self._updateClientUserData(self._request(
-                    url=GET_PROMOS, headers=self.userHeaders))
+            self._updateClientUserData(request(url=GET_PROMOS, headers=self.userHeaders))
+            for gameObj in self.promoGamesObj:
                 promoKey = ""
-                promoGameState = self._getPromoGameState(item)
-                if self._isPromoActive(promoGameState):
-                    promoKey = self.getPromoGameKeyByID(item)
+                if self._isPromoActive(gameObj):
+                    promoKey = gameObj.genPromoKey()
                     if promoKey:
                         if self._updateClientUserData(self.promoCode(promoKey=promoKey)):
-                            logger.info("{promoName}".format(promoName=promoGameState["title"]).ljust(30, " ") + "\t" +
-                                        "{rKD}".format(rKD=promoGameState["receiveKeysToday"]) + "<green> (+1)</green> / " +
-                                        "{kPD}".format(kPD=promoGameState["keysPerDay"]) + "\n")
+                            logger.info("{promoName}".format(promoName=gameObj.title).ljust(30, " ") + "\t" +
+                                        "<green>{rKD}</green> / ".format(rKD=gameObj.receiveKeysToday) +
+                                        "{kPD}".format(kPD=gameObj.keysPerDay))
                     else:
-                        logger.warning("{promoName}".format(promoName=promoGameState["title"]).ljust(30, " ") + "\tUnable to get a key\n")
-                else:
-                    logger.info("{promoName}".format(promoName=promoGameState["title"]).ljust(30, " ") + "\t" +
-                                "{rKD}".format(rKD=promoGameState["receiveKeysToday"]) + " / " +
-                                "{kPD}".format(kPD=promoGameState["keysPerDay"])
-                                )
-            logger.info("-" * SEP_LENGTH + "\n\n")
+                        logger.warning("{promoName}".format(promoName=gameObj.title).ljust(30, " ") + "\tUnable to get a key")
+                    logger.info("-" * SEP_LENGTH + "\n")
     
-    def isNeedPromoGamesKeyGen(self) -> bool:
-        for item in self.promoGames:
-            if self._isPromoActive(self._getPromoGameState(item)):
+    def _isNeedPromoGamesKeyGen(self) -> bool:
+        for item in self.promoGamesObj:
+            if self._isPromoActive(item):
                 return True
         return False
-
-    def getPromoGameKeyByID(self, promoId: str) -> str:
-        for game in self.__promoGames:
-            if game.promoId == promoId:
-                return game.genPromoKey()
-        return ""
 
     def promoCode(self, promoKey: str) -> dict:
         userData = {
             "promoCode": promoKey
         }
-        return self._request(url=APPLY_PROMO, headers=self.userHeaders, data=userData)
+        return request(url=APPLY_PROMO, headers=self.userHeaders, data=userData)
 
     def buyUpgrade(self, item: dict) -> dict:
         userData = {
             "timestamp": int(time.time()),
             "upgradeId": item["id"]
         }
-        return self._request(url=BUY_UPGRADE, headers=self.userHeaders, data=userData)
+        return request(url=BUY_UPGRADE, headers=self.userHeaders, data=userData)
 
     def dailyCombo(self) -> dict:
-        return self._request(url=CLAIM_DAILY_COMBO, headers=self.userHeaders)
+        return request(url=CLAIM_DAILY_COMBO, headers=self.userHeaders)
 
     def streakDays(self) -> dict:
         userData = {
             "taskId": "streak_days"
         }
-        return self._request(url=CHECK_TASKS, headers=self.userHeaders, data=userData)
+        return request(url=CHECK_TASKS, headers=self.userHeaders, data=userData)
 
     def dailyKeysMiniGame(self) -> dict:
-        self._request(url=START_MINI_GAME, headers=self.userHeaders)
+        request(url=START_MINI_GAME, headers=self.userHeaders)
         time.sleep(random.randint(15, 20))
         userData = {
             "cipher": b64encode(f"0300000000|{self.id}".encode()).decode()
         }
-        return self._request(url=CLAIM_DAILY_KEYS_MINIGAME, headers=self.userHeaders, data=userData)
+        return request(url=CLAIM_DAILY_KEYS_MINIGAME, headers=self.userHeaders, data=userData)
 
     def dailyCipher(self) -> dict:
         cipher = self.morseCipher[:3] + self.morseCipher[4:]
         userData = {
             "cipher": b64decode(cipher.encode()).decode('utf-8')
         }
-        return self._request(url=CLAIM_DAILY_CIPHER, headers=self.userHeaders, data=userData)
+        return request(url=CLAIM_DAILY_CIPHER, headers=self.userHeaders, data=userData)
 
     def tap(self) -> dict:
         userData = {
@@ -435,29 +520,14 @@ class Client(MainConfig):
             "availableTaps": self.availableTaps,
             "timestamp": int(time.time())
         }
-        return self._request(url=TAP, headers=self.userHeaders, data=userData)
+        return request(url=TAP, headers=self.userHeaders, data=userData)
 
     def boostTap(self) -> dict:
         userData = {
             "boostId": "BoostFullAvailableTaps",
             "timestamp": int(time.time())
         }
-        return self._request(url=BOOSTS_FOR_BUY, headers=self.userHeaders, data=userData)
-
-    def _getPromoGameState(self, promoId: str) -> dict:
-        if not promoId in self.promoStates:
-            promoGameState = {
-                "title": self.promoGames[promoId]["title"]["en"],
-                "receiveKeysToday": 0,
-                "keysPerDay": self.promoGames[promoId]["keysPerDay"]
-            }
-        else:
-            promoGameState = {
-                "title": self.promoGames[promoId]["title"]["en"],
-                "receiveKeysToday": self.promoStates[promoId]["receiveKeysToday"],
-                "keysPerDay": self.promoGames[promoId]["keysPerDay"]
-            }
-        return promoGameState
+        return request(url=BOOSTS_FOR_BUY, headers=self.userHeaders, data=userData)
 
     def _isUpgradable(self, item: dict) -> bool:
         if item["id"] in self.excludeItems:
@@ -478,8 +548,10 @@ class Client(MainConfig):
             return False
         return True
 
-    def _isPromoActive(self, item: dict) -> bool:
-        if item["receiveKeysToday"] < item["keysPerDay"]:
+    def _isPromoActive(self, item: object) -> bool:
+        if not item.isActive:
+            return False
+        if item.receiveKeysToday < item.keysPerDay:
             return True
         return False
 
@@ -530,6 +602,13 @@ class Client(MainConfig):
                 if item["isAvailable"] and not item["isExpired"]:
                     if item["profitPerHourDelta"] > 0:
                         self.upgradesForBuy.append(item)
+                    elif item["price"] == 0:
+                        if item["maxLevel"] >= item["level"]:
+                            item.update({
+                                "profitPerHourDelta": 1,
+                                "price": 1
+                            })
+                            self.upgradesForBuy.append(item)
             self.upgradesForBuy.sort(key=lambda coinPrice: coinPrice["profitPerHourDelta"] / coinPrice["price"], reverse=True)
             self.upgradesCooldown = list(filter(lambda cooldown: not cooldown.get("cooldownSeconds") is None, self.upgradesForBuy))
             self.upgradesCooldown = list(filter(lambda cooldown: cooldown.get("cooldownSeconds") > 0, self.upgradesCooldown))
@@ -545,18 +624,39 @@ class Client(MainConfig):
                         self.isAvailableTapsBoost = True
 
         if "promos" in data:
-            self.promoGames = {}
-            for gameId in data["promos"]:
-                self.promoGames.update({
-                    gameId["promoId"]: gameId
-                })
-
-        if "states" in data:
-            self.promoStates = {}
-            for state in data["states"]:
-                self.promoStates.update({
-                    state["promoId"]: state
-                })
+            gamesList = [game["promoId"] for game in data["promos"]]
+            gameObjIdList = [game.promoId for game in self.promoGamesObj]
+            for gameObjId in gameObjIdList:
+                if not gameObjId in gamesList:
+                    self.promoGamesObj.remove(self.getPromoGameByID(gameObjId))
+            for game in data["promos"]:
+                gameObj = self.getPromoGameByID(game["promoId"])
+                if gameObj:
+                    gameObj.updateConfig(self.mainConfig.promoGames)
+                else:
+                    gameObj = PromoGame(self.name, **self.mainConfig.promoGames[game["promoId"]])
+                    self.promoGamesObj.append(gameObj)
+                
+                defaultState = {
+                    "title": gameObj.name,
+                    "receiveKeysToday": 0,
+                    "keysPerDay": 0
+                }
+                if "states" in data:
+                    for promoState in data["states"]:
+                        if promoState["promoId"] == gameObj.promoId:
+                            defaultState.update({
+                                "receiveKeysToday": promoState["receiveKeysToday"],
+                                "keysPerDay": game["keysPerDay"]
+                            })
+                gameObj.updateState(defaultState)
+            self.isAllKeysCollected = not self._isNeedPromoGamesKeyGen()
+        
+        if "promoState" in data:
+            gameObj = self.getPromoGameByID(data["promoState"]["promoId"])
+            if gameObj:
+                gameObj.receiveKeysToday = data["promoState"]["receiveKeysToday"]
+            
         return True
 
     def status(self) -> None:
@@ -592,13 +692,45 @@ class Client(MainConfig):
                                 "{coinPrice:,.2f}\t".format(coinPrice=round(item['price']/item['profitPerHourDelta'], 2)).replace(",", " ").rjust(10, " ") +
                                 f"{str(item.get('cooldownSeconds')).rjust(6, ' ')} sec")
             logger.info("-" * SEP_LENGTH + "\n")
+            
+
+def request(method: str = "POST", url: str = "", headers: dict = None, data: dict = None) -> dict:
+    userAgent = UserAgent().safari
+    defaultHeaders = {
+        "Accept": "*/*",
+        "Connection": "keep-alive",
+        "Host": "api.hamsterkombatgame.io",
+        "Origin": "https://hamsterkombatgame.io",
+        "Referer": "https://hamsterkombatgame.io/",
+        "Sec-Fetch-Dest": "empty",
+        "Sec-Fetch-Mode": "cors",
+        "Sec-Fetch-Site": "same-site",
+        "User-Agent": userAgent,
+    }
+    if not headers is None:
+        for key, value in headers.items():
+            defaultHeaders[key] = value
+    try:
+        if method == "GET":
+            response = requests.get(url, headers=defaultHeaders)
+        elif method == "POST":
+            response = requests.post(
+                url, headers=defaultHeaders, data=json.dumps(data))
+        elif method == "OPTIONS":
+            response = requests.options(url, headers=defaultHeaders)
+        else:
+            err_msg = f"Invalid method: {method}"
+            return {"error_message": err_msg}
+        return response.json()
+    except Exception as e:
+        err_msg = f"Error: {e}"
+        return {"error_message": err_msg}
 
 
 def main():
     try:
         logger.info("-" * SEP_LENGTH)
-        logger.info(
-            " <b>Hamster Kombat Bot by Qx</b> ".center(SEP_LENGTH + 7, "-"))
+        logger.info(" <b>Hamster Kombat Bot by Qx</b> ".center(SEP_LENGTH + 7, "-"))
         logger.info("-" * SEP_LENGTH + "\n")
         
         HamsterConfig = MainConfig()
@@ -611,27 +743,28 @@ def main():
             while clientIndex < HamsterConfig.lenClients:
                 HamsterConfig.getHamster(clientIndex).sync()
                 HamsterConfig.getHamster(clientIndex).status()
-                if not isNeedKeyGen:
-                    isNeedKeyGen = HamsterConfig.getHamster(clientIndex).isNeedPromoGamesKeyGen()
+                HamsterConfig.promoGamesCollect(HamsterConfig.getHamster(clientIndex))
                 clientIndex += 1
             minDelay = random.randint(1, 30)
             minDelay += HamsterConfig.minDelay()
             iterTime = time.time()
-            logger.info(f"Continue in {minDelay} sec ({datetime.fromtimestamp(
-                iterTime + minDelay).strftime("%d.%m.%Y, %H:%M:%S")})")
-            logger.info("*" * SEP_LENGTH + "\n\n")
 
             remainsDelay = minDelay
-            if isNeedKeyGen:
-                while time.time() + 1800 < iterTime + minDelay:
-                    HamsterConfig.getHamster(promoIndex).promoGameKeyGen()
-                    promoIndex += 1
-                    if promoIndex >= HamsterConfig.lenClients:
-                        promoIndex = 0
-                    remainsDelay = (iterTime + minDelay) - time.time()
+            while time.time() + 900 < iterTime + minDelay and len(HamsterConfig.promoGamesCollect()) > 0:
+                promoClient = HamsterConfig.getHamster(promoIndex)
+                if promoClient in HamsterConfig.promoGamesCollect():
+                    promoClient.promoGameKeyGen()
+                    HamsterConfig.promoGamesCollect(promoClient)    
+                promoIndex += 1
+                if promoIndex >= HamsterConfig.lenClients:
+                    promoIndex = 0
 
             if remainsDelay > 0:
+                logger.info(f"Continue in {remainsDelay} sec ({datetime.fromtimestamp(
+                    time.time() + remainsDelay).strftime("%d.%m.%Y, %H:%M:%S")})")
+                logger.info("*" * SEP_LENGTH + "\n\n")
                 time.sleep(remainsDelay)
+            HamsterConfig.updateConfig()
     except KeyboardInterrupt:
         logger.info("Hamster Kombat Bot terminated")
         return
