@@ -142,6 +142,21 @@
             "eventType": "racing",
             "delay": 300,
             "delayRetry": 20
+        },
+        "bc0971b8-04df-4e72-8a3e-ec4dc663cd11": {
+            "name": "Cafe Dash",
+            "appToken": "bc0971b8-04df-4e72-8a3e-ec4dc663cd11",
+            "promoId": "bc0971b8-04df-4e72-8a3e-ec4dc663cd11",
+            "userAgent": "Mozilla/5.0",
+            "x-unity-version": null,
+            "clientOrigin": "android",
+            "clientIdType": "16str",
+            "clientVersion": "2.24.0",
+            "eventIdType": "timestamp",
+            "eventOrigin": "undefined",
+            "eventType": "5visitorsChecks",
+            "delay": 300,
+            "delayRetry": 20
         }
     },
     "clients": {
