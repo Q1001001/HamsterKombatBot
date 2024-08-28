@@ -9,6 +9,9 @@ from datetime import datetime
 from base64 import b64decode, b64encode
 from loguru import logger
 from fake_useragent import UserAgent
+from hashlib import sha256
+from datetime import datetime
+# import base64
 
 
 DOMAIN = "https://api.hamsterkombatgame.io"
@@ -189,11 +192,14 @@ class MainConfig():
 
 
 class PromoGame(MainConfig):
-    def __init__(self, hamsterName: str = "", **kwargs):
-        self.promoId = kwargs.get("promoId")
-        self.hamsterName = hamsterName
+    def __init__(self, hamsterName: str, promoGame: dict, mainConfig: object):
         self.isActive = False
-        self.setInitValues(**kwargs)
+        self.promoId = promoGame["promoId"]
+        self.title = promoGame["title"]["en"]
+        self.keysPerDay = promoGame["keysPerDay"]
+        self.receiveKeysToday = 0
+        self.hamsterName = hamsterName
+        self.setInitParams(mainConfig)
         self.hasCode = False
         self.isLogin = False
         self.userHeaders = {
@@ -202,39 +208,37 @@ class PromoGame(MainConfig):
             "Referer": "",
             "Content-Type": "application/json; charset=utf-8",
         }
-        logger.info(f"{self.name}".ljust(30, " ") + f"\t<green>added</green> to {self.hamsterName}")
+        logger.info(f"{self.title}".ljust(30, " ") + f"\t<green>added</green> to {self.hamsterName}")
         
     def __del__(self):
-        logger.info(f"{self.name}".ljust(30, " ") + f"\t<red>removed</red> from {self.hamsterName}")
+        logger.info(f"{self.title}".ljust(30, " ") + f"\t<red>removed</red> from {self.hamsterName}")
         
-    def setInitValues(self, **kwargs) -> None:
-        self.name = kwargs.get("name")
-        self.appToken = kwargs.get("appToken")
-        self.userAgent = kwargs.get("userAgent")
-        self.x_unity_version = kwargs.get("x-unity-version")
-        self.clientOrigin = kwargs.get("clientOrigin")
-        self.clientIdType = kwargs.get("clientIdType")
-        self.clientVersion = kwargs.get("clientVersion")
-        self.eventIdType = kwargs.get("eventIdType")
-        self.eventOrigin = kwargs.get("eventOrigin")
-        self.eventType = kwargs.get("eventType")
-        self.delay = kwargs.get("delay")
-        self.delayRetry = kwargs.get("delayRetry")
+    def setInitParams(self, mainConfig: object) -> None:
+        self.mainConfig = mainConfig
+        if not self.promoId in self.mainConfig.promoGames:
+            self.isActive = False
+            return
+        config = self.mainConfig.promoGames[self.promoId]
+        self.name = config.get("name")
+        self.appToken = config.get("appToken")
+        self.userAgent = config.get("userAgent")
+        self.x_unity_version = config.get("x-unity-version")
+        self.clientOrigin = config.get("clientOrigin")
+        self.clientIdType = config.get("clientIdType")
+        self.clientVersion = config.get("clientVersion")
+        self.eventIdType = config.get("eventIdType")
+        self.eventOrigin = config.get("eventOrigin")
+        self.eventType = config.get("eventType")
+        self.delay = config.get("delay")
+        self.delayRetry = config.get("delayRetry")
         self.isActive = True
         
     def updateState(self, state: dict) -> None:
-        self.title = state["title"]
         self.receiveKeysToday = state["receiveKeysToday"]
-        self.keysPerDay = state["keysPerDay"]
     
-        
-    def updateConfig(self, promoGames: dict) -> None:
-        promoGameData = promoGames.get(self.promoId)
-        if promoGameData:
-            self.setInitValues(**promoGameData)
-        else:
-            self.isActive = False
-        
+    def updateConfig(self, mainConfig) -> None:
+        self.setInitParams(mainConfig)
+
     @logger.catch
     def genPromoKey(self) -> str:
         logger.info(f"Generate {self.name} promo-key")
@@ -276,6 +280,8 @@ class PromoGame(MainConfig):
         eventId = self.eventIdType
         if self.eventIdType == "uuid":
             eventId = str(uuid.uuid4())
+        elif self.eventIdType == "timestamp":
+            eventId = str(int(time.time() * 1000))
         userData = {
             "promoId": self.promoId,
             "eventId": eventId,
@@ -291,6 +297,8 @@ class PromoGame(MainConfig):
         clientID = f"{int(time.time() * 1000)}-{''.join(str(random.randint(0, 9)) for _ in range(19))}"
         if self.clientIdType == "32str":
             clientID = "".join(random.choices("abcdefghijklmnopqrstuvwxyz0123456789", k=32))
+        elif self.clientIdType == "16str":
+            clientID = "".join(random.choices("abcdefghijklmnopqrstuvwxyz0123456789", k=16))
         elif self.clientIdType == "uuid":
             clientID = str(uuid.uuid4())
 
@@ -500,11 +508,25 @@ class Client():
         return request(url=CHECK_TASKS, headers=self.userHeaders, data=userData)
 
     def dailyKeysMiniGame(self) -> dict:
-        request(url=START_MINI_GAME, headers=self.userHeaders)
-        time.sleep(random.randint(15, 20))
         userData = {
-            "cipher": b64encode(f"0300000000|{self.id}".encode()).decode()
+            "miniGameId": "Candles"
         }
+        request(url=START_MINI_GAME, headers=self.userHeaders, data=userData)
+        score = str(int(time.time()))
+        time.sleep(random.randint(15, 20))
+        self.miniGameCipher = "|".join([
+            f"0{''.join(str(random.randint(0, 9)) for _ in range(9))}",
+            self.id,
+            "Candles",
+            score,
+            b64encode(sha256(f"415t1ng{score}0ra1cum5h0t".encode()).digest()).decode()
+        ]).encode()
+        
+        userData = {
+            "miniGameId": "Candles",
+            "cipher": b64encode(self.miniGameCipher).decode()
+        }
+        # "cipher": b64encode(f"0300000000|{self.id}".encode()).decode()
         return request(url=CLAIM_DAILY_KEYS_MINIGAME, headers=self.userHeaders, data=userData)
 
     def dailyCipher(self) -> dict:
@@ -581,8 +603,11 @@ class Client():
                 if task["id"] == "streak_days":
                     self.isStreakDays = task["isCompleted"]
 
-        if "dailyKeysMiniGame" in data:
-            self.miniGame = data["dailyKeysMiniGame"]["isClaimed"]
+        if "dailyKeysMiniGames" in data:
+            if "Candles" in data["dailyKeysMiniGames"]:
+                self.miniGame = data["dailyKeysMiniGames"]["Candles"]["isClaimed"]
+            else:
+                self.miniGame = data["dailyKeysMiniGames"]["isClaimed"]
 
         if "dailyCipher" in data:
             self.morseGame = data["dailyCipher"]["isClaimed"]
@@ -624,38 +649,34 @@ class Client():
                         self.isAvailableTapsBoost = True
 
         if "promos" in data:
-            gamesList = [game["promoId"] for game in data["promos"]]
-            gameObjIdList = [game.promoId for game in self.promoGamesObj]
-            for gameObjId in gameObjIdList:
-                if not gameObjId in gamesList:
-                    self.promoGamesObj.remove(self.getPromoGameByID(gameObjId))
-            for game in data["promos"]:
-                gameObj = self.getPromoGameByID(game["promoId"])
+            for promoGame in data["promos"]:
+                gameObj = self.getPromoGameByID(promoGame["promoId"])
                 if gameObj:
-                    gameObj.updateConfig(self.mainConfig.promoGames)
+                    gameObj.updateConfig(self.mainConfig)
                 else:
-                    gameObj = PromoGame(self.name, **self.mainConfig.promoGames[game["promoId"]])
+                    gameObj = PromoGame(self.name, promoGame, self.mainConfig)
                     self.promoGamesObj.append(gameObj)
+            
+            del_gameList = []
+            gamesList = [game["promoId"] for game in data["promos"]]
+            for gameObj in self.promoGamesObj:
+                if not gameObj.promoId in gamesList:
+                    del_gameList.append(gameObj.promoId)
+            
+            for promoId in del_gameList:
+                self.promoGamesObj.remove(self.getPromoGameByID(gameObjId))
                 
-                defaultState = {
-                    "title": gameObj.name,
-                    "receiveKeysToday": 0,
-                    "keysPerDay": 0
-                }
-                if "states" in data:
-                    for promoState in data["states"]:
-                        if promoState["promoId"] == gameObj.promoId:
-                            defaultState.update({
-                                "receiveKeysToday": promoState["receiveKeysToday"],
-                                "keysPerDay": game["keysPerDay"]
-                            })
-                gameObj.updateState(defaultState)
+        if "states" in data:
+            for promoState in data["states"]:
+                gameObj = self.getPromoGameByID(promoState["promoId"])
+                if gameObj:
+                    gameObj.updateState(promoState)
             self.isAllKeysCollected = not self._isNeedPromoGamesKeyGen()
         
         if "promoState" in data:
             gameObj = self.getPromoGameByID(data["promoState"]["promoId"])
             if gameObj:
-                gameObj.receiveKeysToday = data["promoState"]["receiveKeysToday"]
+                gameObj.updateState(data["promoState"])
             
         return True
 
@@ -758,7 +779,7 @@ def main():
                 promoIndex += 1
                 if promoIndex >= HamsterConfig.lenClients:
                     promoIndex = 0
-
+            remainsDelay = int((iterTime + minDelay) - time.time())
             if remainsDelay > 0:
                 logger.info(f"Continue in {remainsDelay} sec ({datetime.fromtimestamp(
                     time.time() + remainsDelay).strftime("%d.%m.%Y, %H:%M:%S")})")
