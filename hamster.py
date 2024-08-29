@@ -10,7 +10,6 @@ from base64 import b64decode, b64encode
 from loguru import logger
 from fake_useragent import UserAgent
 from hashlib import sha256
-from datetime import datetime
 # import base64
 
 
@@ -400,10 +399,11 @@ class Client():
             self._updateClientUserData(resultData)
 
         if self.mainConfig.enableTaps:
-            while self.availableTaps > self.maxTaps / 2:
+            if self.availableTaps > self.maxTaps / 2:
                 self._updateClientUserData(self.tap())
-                if self.availableTaps < self.maxTaps / self.earnPerTap:
-                    self._updateClientUserData(self.boostTap())
+            if self.availableTaps < (self.maxTaps / self.earnPerTap):
+                self._updateClientUserData(self.boostTap())
+                self._updateClientUserData(self.tap())
 
         if self.mainConfig.enableDailyCipher:
             logger.info("<b>Check daily ciphers...</b>")
@@ -549,7 +549,7 @@ class Client():
             "boostId": "BoostFullAvailableTaps",
             "timestamp": int(time.time())
         }
-        return request(url=BOOSTS_FOR_BUY, headers=self.userHeaders, data=userData)
+        return request(url=BUY_BOOSTS, headers=self.userHeaders, data=userData)
 
     def _isUpgradable(self, item: dict) -> bool:
         if item["id"] in self.excludeItems:
