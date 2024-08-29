@@ -36,6 +36,12 @@ Hamster Kombat auto farm bot
 ```txt
   git clone https://github.com/Q1001001/HamsterKombatBot.git
   cd HamsterKombatBot
-  pip install -r requirements.txt
+  python3 -m venv .venv
+  source .venv/bin/activate
+  pip3 install -r requirements.txt
+  mv def_conf.json conf.json
+```
+Enter your account settings in the conf.json and run the script
+```txt
   python3 hamster.py
 ```
