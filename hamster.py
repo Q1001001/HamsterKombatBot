@@ -783,8 +783,7 @@ def main():
                     promoIndex = 0
             remainsDelay = int((iterTime + minDelay) - time.time())
             if remainsDelay > 0:
-                logger.info(f"Continue in {remainsDelay} sec ({datetime.fromtimestamp(
-                    time.time() + remainsDelay).strftime("%d.%m.%Y, %H:%M:%S")})")
+                logger.info(f"Continue in {remainsDelay} sec ({datetime.fromtimestamp(time.time() + remainsDelay).strftime('%d.%m.%Y, %H:%M:%S')})")
                 logger.info("*" * SEP_LENGTH + "\n\n")
                 time.sleep(remainsDelay)
             HamsterConfig.updateConfig()
