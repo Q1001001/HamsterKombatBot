@@ -10,7 +10,6 @@ from base64 import b64decode, b64encode
 from loguru import logger
 from fake_useragent import UserAgent
 from hashlib import sha256
-# import base64
 
 
 DOMAIN = "https://api.hamsterkombatgame.io"
@@ -234,6 +233,8 @@ class PromoGame(MainConfig):
         
     def updateState(self, state: dict) -> None:
         self.receiveKeysToday = state["receiveKeysToday"]
+        if self.receiveKeysToday == self.keysPerDay:
+            self.isActive = False
     
     def updateConfig(self, mainConfig) -> None:
         self.setInitParams(mainConfig)
@@ -401,7 +402,7 @@ class Client():
         if self.mainConfig.enableTaps:
             if self.availableTaps > self.maxTaps / 2:
                 self._updateClientUserData(self.tap())
-            if self.availableTaps < (self.maxTaps / self.earnPerTap):
+            if self.availableTaps < (self.maxTaps / self.earnPerTap) and self.isAvailableTapsBoost:
                 self._updateClientUserData(self.boostTap())
                 self._updateClientUserData(self.tap())
 
@@ -677,6 +678,7 @@ class Client():
             gameObj = self.getPromoGameByID(data["promoState"]["promoId"])
             if gameObj:
                 gameObj.updateState(data["promoState"])
+            self.isAllKeysCollected = not self._isNeedPromoGamesKeyGen()
             
         return True
 
