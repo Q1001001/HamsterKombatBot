@@ -10,7 +10,8 @@ Hamster Kombat auto farm bot
 "options": {
         "enableTaps": true,         // Auto taps if available taps > maxTaps / 2 + energy boost
         "enableDailyTasks": true,   // Auto StreakDays and Combo (combo reward available if all comboCards have been bought)
-        "enableDailyCipher": true,  // Auto play Morse-game and MiniGame
+        "enableDailyCipher": true,  // Auto play Morse-game 
+        "enableMiniGames": false,   // Auto play MiniGames
         "enableUpgrade": true,      // Auto upgrade cards.
         "enablePromoGames": true,   // Auto promo keys gen and claim
         "defaultDelay": 3600        // MAX delay(sec) per check. Less then 1800 deactivate promoGames

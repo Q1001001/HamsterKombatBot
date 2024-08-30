@@ -38,13 +38,13 @@ class MainConfig():
         if not options:
             return False
 
-        self.enableTaps = options.get("enableTaps")
-        self.enableDailyTasks = options.get("enableDailyTasks")
-        self.enableDailyCipher = options.get("enableDailyCipher")
-        self.enableDailyCipher = False
-        self.enableUpgrade = options.get("enableUpgrade")
-        self.defaultDelay = options.get("defaultDelay")
-        self.enablePromoGames = options.get("enablePromoGames")
+        self.enableTaps = options.get("enableTaps", False)
+        self.enableDailyTasks = options.get("enableDailyTasks", False)
+        self.enableDailyCipher = options.get("enableDailyCipher", False)
+        self.enableMiniGames = options.get("enableMiniGames", False)
+        self.enableUpgrade = options.get("enableUpgrade", False)
+        self.defaultDelay = options.get("defaultDelay", 3600)
+        self.enablePromoGames = options.get("enablePromoGames", False)
         return True
     
     @property

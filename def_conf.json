@@ -3,6 +3,7 @@
         "enableTaps": true, 
         "enableDailyTasks": true, 
         "enableDailyCipher": true,
+        "enableMiniGames": false,
         "enableUpgrade": true,
         "enablePromoGames": true,
         "defaultDelay": 3600 

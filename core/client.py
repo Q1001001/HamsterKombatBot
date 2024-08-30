@@ -96,14 +96,17 @@ class Client():
                 self._updateClientUserData(self.tap())
 
         if self.mainConfig.enableDailyCipher:
-            logger.info("<b>Check daily ciphers...</b>")
+            logger.info("<b>Check daily cipher...</b>")
             if self.morseGame:
                 logger.info(f"{'Morse-Game'.ljust(30, ' ')}\tAlready claimed")
             elif self.morseCipher:
                 self._updateClientUserData(self.dailyCipher())
                 if self.morseGame:
                     logger.success((f"{'Morse-Game'.ljust(30, ' ')}\t<green>Claimed</green>"))
-
+            logger.info("-" * SEP_LENGTH)
+        
+        if self.mainConfig.enableMiniGames:
+            logger.info("<b>Check daily miniGames...</b>")
             if self.miniGame:
                 logger.info(f"{'Mini-Game'.ljust(30, ' ')}\tAlready claimed ({self.totalKeys})")
             else:
