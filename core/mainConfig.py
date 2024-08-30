@@ -106,7 +106,8 @@ class MainConfig():
             "enableDailyCipher": self.enableDailyCipher,
             "enableUpgrade": self.enableUpgrade,
             "enablePromoGames": self.enablePromoGames,
-            "defaultDelay": self.defaultDelay
+            "defaultDelay": self.defaultDelay,
+            "enableMiniGames": self.enableMiniGames
         }
         self.loadConfig()
         for confItem in curMainConfig:

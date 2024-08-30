@@ -42,7 +42,7 @@ Create and activete virtual env
 ```txt
   python3 -m venv .venv && source .venv/bin/activate && pip3 install -r requirements.txt
 ```
-Enter your account settings in the conf.json and run the script
+Enter your account settings to the conf.json and run the script
 ```txt
   python3 hamster.py
 ```

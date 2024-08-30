@@ -6,6 +6,7 @@ from .common import (logger,
                     b64decode, 
                     b64encode,
                     sha256,
+                    datetime,
                     SEP_LENGTH,
                     GET_PROMOS,
                     UPGRADES_FOR_BUY,
@@ -30,6 +31,7 @@ class Client():
     def __init__(self, mainConfig: object, **kwargs):
         self.name = kwargs.get("name")
         self._promoGamesObj = []
+        self._miniGameCipher = {}
         self.isAllKeysCollected = False
         self.setInitValues(mainConfig=mainConfig, **kwargs)
         logger.info(f"{self.name}".ljust(30, " ") + f"\t<green>added</green>")
@@ -110,16 +112,18 @@ class Client():
             if self.miniGame:
                 logger.info(f"{'Mini-Game'.ljust(30, ' ')}\tAlready claimed ({self.totalKeys})")
             else:
-                self._updateClientUserData(self.dailyKeysMiniGame())
+                self._updateClientUserData(self.claimMiniGame(miniGameId="Candles"))
                 if self.miniGame:
                     logger.success(f"{'Mini-Game'.ljust(30, ' ')}\t<green>Claimed</green> ({self.totalKeys})")
             
             if self.miniTilesGame:
-                logger.info(f"{'Tiles miniGame'.ljust(30, ' ')}\tAlready claimed ({self.totalKeys})")
+                logger.info(f"{'Tiles miniGame'.ljust(30, ' ')}\tAlready claimed")
             else:
-                self._updateClientUserData(self.dailyKeysMiniTilesGame())
+                self._updateClientUserData(self.claimMiniGame(miniGameId="Tiles"))
                 if self.miniTilesGame:
-                    logger.success(f"{'Tiles miniGame'.ljust(30, ' ')}\t<green>Claimed</green> ({self.miniTilesGameReward})")
+                    logger.success("{title}".format(title="Tiles miniGame".ljust(30, " ")) +
+                                   "\t<green>Claimed</green> " + 
+                                   "({gameReward:,.2f})".format(gameReward=self.miniTilesGameReward).replace(",", " "))
             logger.info("-" * SEP_LENGTH)
 
         if self.mainConfig.enableDailyTasks:
@@ -213,44 +217,28 @@ class Client():
             "miniGameId": miniGameId
         }
         request(url=START_MINI_GAME, headers=self.userHeaders, data=userData)
-        
-    def dailyKeysMiniTilesGame(self) -> dict:
-        self._startMiniGame(miniGameId="Tiles")
-        score = int(time())
-        sleep(40)
-        cipherScore = 2*(score + int(self.miniTilesGameRemainPoints * random()))
-        miniGameCipher = "|".join([
-            f"0{''.join(str(randint(0, 9)) for _ in range(9))}",
-            self.id,
-            "Tiles",
-            str(cipherScore),
-            b64encode(sha256(f"415t1ng{score}0ra1cum5h0t".encode()).digest()).decode()
-        ]).encode()
-        
+
+    def claimMiniGame(self, miniGameId: str) -> None:
+        self._startMiniGame(miniGameId)
+        sleep(randint(15, 20))
         userData = {
-            "miniGameId": "Tiles",
-            "cipher": b64encode(miniGameCipher).decode()
+            "miniGameId": miniGameId,
+            "cipher": self._miniGameCipher[miniGameId]
         }
         return request(url=CLAIM_DAILY_KEYS_MINIGAME, headers=self.userHeaders, data=userData)
 
-    def dailyKeysMiniGame(self) -> dict:
-        self._startMiniGame(miniGameId="Candles")
-        score = int(time())
-        sleep(randint(15, 20))
+    def _getMiniGameCipher(self, game: dict) -> str:
+        timeStart = int(datetime.fromisoformat(game["startDate"].replace("Z", "+00:00")).timestamp())
+        miniGameScore = 2 * (timeStart + game.get("maxPoints", 0))
+        miniGameSignature = b64encode(sha256(f"R1cHard_AnA1{miniGameScore}G1ve_Me_y0u7_Pa55w0rD".encode()).digest()).decode()
         miniGameCipher = "|".join([
             f"0{''.join(str(randint(0, 9)) for _ in range(9))}",
             self.id,
-            "Candles",
-            str(score),
-            b64encode(sha256(f"415t1ng{score}0ra1cum5h0t".encode()).digest()).decode()
+            game["id"],
+            str(miniGameScore),
+            miniGameSignature
         ]).encode()
-        
-        userData = {
-            "miniGameId": "Candles",
-            "cipher": b64encode(miniGameCipher).decode()
-        }
-        # "cipher": b64encode(f"0300000000|{self.id}".encode()).decode()    
-        return request(url=CLAIM_DAILY_KEYS_MINIGAME, headers=self.userHeaders, data=userData)
+        return b64encode(miniGameCipher).decode()
 
     def dailyCipher(self) -> dict:
         cipher = self.morseCipher[:3] + self.morseCipher[4:]
@@ -329,10 +317,15 @@ class Client():
         if "dailyKeysMiniGames" in data:
             if "Candles" in data["dailyKeysMiniGames"]:
                 self.miniGame = data["dailyKeysMiniGames"]["Candles"]["isClaimed"]
+                self._miniGameCipher.update({
+                        data["dailyKeysMiniGames"]["Candles"]["id"]: self._getMiniGameCipher(data["dailyKeysMiniGames"]["Candles"])
+                    }) 
             if "Tiles" in data["dailyKeysMiniGames"]:
                 self.miniTilesGame = data["dailyKeysMiniGames"]["Tiles"]["isClaimed"]
-                self.miniTilesGameRemainPoints = data["dailyKeysMiniGames"]["Tiles"]["remainPoints"] #max 172800
-                self.miniTilesGameStartDate = data["dailyKeysMiniGames"]["Tiles"]["startDate"]
+                self._miniGameCipher.update({
+                        data["dailyKeysMiniGames"]["Tiles"]["id"]: self._getMiniGameCipher(data["dailyKeysMiniGames"]["Tiles"])
+                    })
+                self.miniTilesGameReward = data["dailyKeysMiniGames"].get("bonus", 0)
 
         if "dailyCipher" in data:
             self.morseGame = data["dailyCipher"]["isClaimed"]
