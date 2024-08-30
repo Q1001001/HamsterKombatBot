@@ -86,6 +86,7 @@ class MainConfig():
         self.enableTaps = options.get("enableTaps")
         self.enableDailyTasks = options.get("enableDailyTasks")
         self.enableDailyCipher = options.get("enableDailyCipher")
+        self.enableDailyCipher = False
         self.enableUpgrade = options.get("enableUpgrade")
         self.defaultDelay = options.get("defaultDelay")
         self.enablePromoGames = options.get("enablePromoGames")
@@ -261,11 +262,11 @@ class PromoGame(MainConfig):
             retryCount += 1
 
         if self.hasCode:
-            logger.info(f"<green>Event registered successfully.</green>")
+            logger.success(f"<green>Event registered successfully.</green>")
             self._updatePromoGameData(self.createCode())
             promoKey = self.promoCode
             if promoKey:
-                logger.info(f"<green>{promoKey}</green>")
+                logger.success(f"<green>{promoKey}</green>")
                 self.hasCode = False
                 self.promoCode = ""
         return promoKey
@@ -413,14 +414,21 @@ class Client():
             elif self.morseCipher:
                 self._updateClientUserData(self.dailyCipher())
                 if self.morseGame:
-                    logger.info((f"{'Morse-Game'.ljust(30, ' ')}\t<green>Claimed</green>"))
+                    logger.success((f"{'Morse-Game'.ljust(30, ' ')}\t<green>Claimed</green>"))
 
             if self.miniGame:
                 logger.info(f"{'Mini-Game'.ljust(30, ' ')}\tAlready claimed ({self.totalKeys})")
             else:
                 self._updateClientUserData(self.dailyKeysMiniGame())
                 if self.miniGame:
-                    logger.info(f"{'Mini-Game'.ljust(30, ' ')}\t<green>Claimed</green> ({self.totalKeys})")
+                    logger.success(f"{'Mini-Game'.ljust(30, ' ')}\t<green>Claimed</green> ({self.totalKeys})")
+            
+            if self.miniTilesGame:
+                logger.info(f"{'Tiles miniGame'.ljust(30, ' ')}\tAlready claimed ({self.totalKeys})")
+            else:
+                self._updateClientUserData(self.dailyKeysMiniTilesGame())
+                if self.miniTilesGame:
+                    logger.success(f"{'Tiles miniGame'.ljust(30, ' ')}\t<green>Claimed</green> ({self.miniTilesGameReward})")
             logger.info("-" * SEP_LENGTH)
 
         if self.mainConfig.enableDailyTasks:
@@ -453,9 +461,10 @@ class Client():
 
         if self.mainConfig.enableUpgrade:
             logger.info("<b>Check upgrades...</b>")
-            for item in self.upgradesForBuy[:10]:
+            upgradeList = list(filter(lambda upgradeItem: (upgradeItem['price'] / upgradeItem['profitPerHourDelta']) <= self.limitCoinPrice, self.upgradesForBuy))
+            for item in upgradeList:
                 if self._isUpgradable(item):
-                    logger.info(f"{item.get('id').ljust(30, ' ')}\t" +
+                    logger.success(f"{item.get('id').ljust(30, ' ')}\t" +
                                 "{pPHD:,} / ".format(pPHD=item["profitPerHourDelta"]).replace(",", " ").rjust(10, " ") +
                                 "{cardPrice:,} \t".format(cardPrice=item["price"]).replace(",", " ").rjust(13, " ") +
                                 "{coinPrice:,.2f}".format(coinPrice=item['price'] / item['profitPerHourDelta']).replace(",", " ").rjust(12, " "))
@@ -473,7 +482,7 @@ class Client():
                     promoKey = gameObj.genPromoKey()
                     if promoKey:
                         if self._updateClientUserData(self.promoCode(promoKey=promoKey)):
-                            logger.info("{promoName}".format(promoName=gameObj.title).ljust(30, " ") + "\t" +
+                            logger.success("{promoName}".format(promoName=gameObj.title).ljust(30, " ") + "\t" +
                                         "<green>{rKD}</green> / ".format(rKD=gameObj.receiveKeysToday) +
                                         "{kPD}".format(kPD=gameObj.keysPerDay))
                     else:
@@ -507,27 +516,49 @@ class Client():
             "taskId": "streak_days"
         }
         return request(url=CHECK_TASKS, headers=self.userHeaders, data=userData)
-
-    def dailyKeysMiniGame(self) -> dict:
+    
+    def _startMiniGame(self, miniGameId: str) -> None:
         userData = {
-            "miniGameId": "Candles"
+            "miniGameId": miniGameId
         }
         request(url=START_MINI_GAME, headers=self.userHeaders, data=userData)
-        score = str(int(time.time()))
+        
+    def dailyKeysMiniTilesGame(self) -> dict:
+        self._startMiniGame(miniGameId="Tiles")
+        score = int(time.time())
+        time.sleep(40)
+        cipherScore = 2*(score + int(self.miniTilesGameRemainPoints * random.random()))
+        miniGameCipher = "|".join([
+            f"0{''.join(str(random.randint(0, 9)) for _ in range(9))}",
+            self.id,
+            "Tiles",
+            str(cipherScore),
+            b64encode(sha256(f"415t1ng{score}0ra1cum5h0t".encode()).digest()).decode()
+        ]).encode()
+        
+        userData = {
+            "miniGameId": "Tiles",
+            "cipher": b64encode(miniGameCipher).decode()
+        }
+        return request(url=CLAIM_DAILY_KEYS_MINIGAME, headers=self.userHeaders, data=userData)
+
+    def dailyKeysMiniGame(self) -> dict:
+        self._startMiniGame(miniGameId="Candles")
+        score = int(time.time())
         time.sleep(random.randint(15, 20))
-        self.miniGameCipher = "|".join([
+        miniGameCipher = "|".join([
             f"0{''.join(str(random.randint(0, 9)) for _ in range(9))}",
             self.id,
             "Candles",
-            score,
+            str(score),
             b64encode(sha256(f"415t1ng{score}0ra1cum5h0t".encode()).digest()).decode()
         ]).encode()
         
         userData = {
             "miniGameId": "Candles",
-            "cipher": b64encode(self.miniGameCipher).decode()
+            "cipher": b64encode(miniGameCipher).decode()
         }
-        # "cipher": b64encode(f"0300000000|{self.id}".encode()).decode()
+        # "cipher": b64encode(f"0300000000|{self.id}".encode()).decode()    
         return request(url=CLAIM_DAILY_KEYS_MINIGAME, headers=self.userHeaders, data=userData)
 
     def dailyCipher(self) -> dict:
@@ -561,13 +592,13 @@ class Client():
                 logger.info(f"{str(item['id']).ljust(30, ' ')}\tSkipped by cooldown")
                 return False
         if self.minBalance > 0 and (self.balanceCoins - item["price"]) < self.minBalance:
-            logger.info(f"{item['id'].ljust(30, ' ')}\t<yellow>Skipped by minBalance</yellow>")
+            logger.warning(f"{item['id'].ljust(30, ' ')}\t<yellow>Skipped by minBalance</yellow>")
             return False
         if item["price"] > self.balanceCoins:
             logger.info(f"{item['id'].ljust(30, ' ')}\tSkipped by balance")
             return False
         if item["price"] / item["profitPerHourDelta"] > self.limitCoinPrice:
-            logger.info(f"{item['id'].ljust(30, ' ')}\t<yellow>Skipped by limitCoinPrice</yellow>")
+            logger.warning(f"{item['id'].ljust(30, ' ')}\t<yellow>Skipped by limitCoinPrice</yellow>")
             return False
         return True
 
@@ -607,8 +638,10 @@ class Client():
         if "dailyKeysMiniGames" in data:
             if "Candles" in data["dailyKeysMiniGames"]:
                 self.miniGame = data["dailyKeysMiniGames"]["Candles"]["isClaimed"]
-            else:
-                self.miniGame = data["dailyKeysMiniGames"]["isClaimed"]
+            if "Tiles" in data["dailyKeysMiniGames"]:
+                self.miniTilesGame = data["dailyKeysMiniGames"]["Tiles"]["isClaimed"]
+                self.miniTilesGameRemainPoints = data["dailyKeysMiniGames"]["Tiles"]["remainPoints"] #max 172800
+                self.miniTilesGameStartDate = data["dailyKeysMiniGames"]["Tiles"]["startDate"]
 
         if "dailyCipher" in data:
             self.morseGame = data["dailyCipher"]["isClaimed"]
@@ -665,7 +698,9 @@ class Client():
                     del_gameList.append(gameObj.promoId)
             
             for promoId in del_gameList:
-                self.promoGamesObj.remove(self.getPromoGameByID(gameObjId))
+                gameObj = self.getPromoGameByID(gameObjId)
+                if gameObj:
+                    self.promoGamesObj.remove(gameObj)
                 
         if "states" in data:
             for promoState in data["states"]:
