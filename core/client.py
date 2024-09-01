@@ -32,6 +32,7 @@ class Client():
         self.name = kwargs.get("name")
         self._promoGamesObj = []
         self._miniGameCipher = {}
+        self._miniGameReward = {}
         self.isAllKeysCollected = False
         self.setInitValues(mainConfig=mainConfig, **kwargs)
         logger.info(f"{self.name}".ljust(30, " ") + f"\t<green>added</green>")
@@ -65,7 +66,7 @@ class Client():
         clientData = clients[self.name]
         if clientData:
             self.setInitValues(mainConfig, **clientData)
-            logger.info("-" * SEP_LENGTH)
+            # logger.info("-" * SEP_LENGTH)
     
     def getPromoGameByID(self, promoID: str) -> object:
         if self.promoGamesObj:
@@ -78,6 +79,8 @@ class Client():
     def sync(self) -> None:
         logger.info(f"<b>{self.name}</b>")
         logger.info("-" * SEP_LENGTH)
+        self._miniGameCipher = {}
+        self._miniGameReward = {}
         url_list = [
             SYNC,
             LIST_TASKS,
@@ -114,7 +117,9 @@ class Client():
             else:
                 self._updateClientUserData(self.claimMiniGame(miniGameId="Candles"))
                 if self.miniGame:
-                    logger.success(f"{'Mini-Game'.ljust(30, ' ')}\t<green>Claimed</green> ({self.totalKeys})")
+                    logger.success("{title}".format(title='Mini-Game'.ljust(30, ' ')) + 
+                                   "\t<green>Claimed</green> " + 
+                                   "(+{gameReward})".format(gameReward=self._miniGameReward.get("Candles", 0)))
             
             if self.miniTilesGame:
                 logger.info(f"{'Tiles miniGame'.ljust(30, ' ')}\tAlready claimed")
@@ -123,7 +128,7 @@ class Client():
                 if self.miniTilesGame:
                     logger.success("{title}".format(title="Tiles miniGame".ljust(30, " ")) +
                                    "\t<green>Claimed</green> " + 
-                                   "({gameReward:,.2f})".format(gameReward=self.miniTilesGameReward).replace(",", " "))
+                                   "(+{gameReward:,.2f})".format(gameReward=self._miniGameReward.get("Tiles", 0)).replace(",", " "))
             logger.info("-" * SEP_LENGTH)
 
         if self.mainConfig.enableDailyTasks:
@@ -315,17 +320,25 @@ class Client():
                     self.isStreakDays = task["isCompleted"]
 
         if "dailyKeysMiniGames" in data:
-            if "Candles" in data["dailyKeysMiniGames"]:
-                self.miniGame = data["dailyKeysMiniGames"]["Candles"]["isClaimed"]
+            miniGameData = data["dailyKeysMiniGames"]
+            if "Candles" in miniGameData:
+                self.miniGame = miniGameData["Candles"]["isClaimed"]
                 self._miniGameCipher.update({
-                        data["dailyKeysMiniGames"]["Candles"]["id"]: self._getMiniGameCipher(data["dailyKeysMiniGames"]["Candles"])
+                        miniGameData["Candles"]["id"]: self._getMiniGameCipher(miniGameData["Candles"])
                     }) 
-            if "Tiles" in data["dailyKeysMiniGames"]:
-                self.miniTilesGame = data["dailyKeysMiniGames"]["Tiles"]["isClaimed"]
+            if "Tiles" in miniGameData:
+                self.miniTilesGame = miniGameData["Tiles"]["isClaimed"]
                 self._miniGameCipher.update({
-                        data["dailyKeysMiniGames"]["Tiles"]["id"]: self._getMiniGameCipher(data["dailyKeysMiniGames"]["Tiles"])
+                        miniGameData["Tiles"]["id"]: self._getMiniGameCipher(miniGameData["Tiles"])
                     })
-                self.miniTilesGameReward = data["dailyKeysMiniGames"].get("bonus", 0)
+            if "id" in miniGameData:
+                if miniGameData["id"] == "Tiles":
+                    self.miniTilesGame = miniGameData["isClaimed"]
+                elif miniGameData["id"] == "Candles":
+                     self.miniGame = miniGameData["isClaimed"]
+                self._miniGameReward.update({
+                    miniGameData["id"]: data.get("bonus", 0)
+                })
 
         if "dailyCipher" in data:
             self.morseGame = data["dailyCipher"]["isClaimed"]
