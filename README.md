@@ -38,7 +38,7 @@ Clone repository
 ```txt
   git clone https://github.com/Q1001001/HamsterKombatBot.git && cd HamsterKombatBot && mv def_conf.json conf.json
 ```
-Create and activete virtual env
+Create and activate virtual env
 ```txt
   python3 -m venv .venv && source .venv/bin/activate && pip3 install -r requirements.txt
 ```
