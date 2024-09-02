@@ -31,8 +31,7 @@ class Client():
     def __init__(self, mainConfig: object, **kwargs):
         self.name = kwargs.get("name")
         self._promoGamesObj = []
-        self._miniGameCipher = {}
-        self._miniGameReward = {}
+        self._miniGames = {}
         self.isAllKeysCollected = False
         self.setInitValues(mainConfig=mainConfig, **kwargs)
         logger.info(f"{self.name}".ljust(30, " ") + f"\t<green>added</green>")
@@ -66,7 +65,6 @@ class Client():
         clientData = clients[self.name]
         if clientData:
             self.setInitValues(mainConfig, **clientData)
-            # logger.info("-" * SEP_LENGTH)
     
     def getPromoGameByID(self, promoID: str) -> object:
         if self.promoGamesObj:
@@ -79,8 +77,7 @@ class Client():
     def sync(self) -> None:
         logger.info(f"<b>{self.name}</b>")
         logger.info("-" * SEP_LENGTH)
-        self._miniGameCipher = {}
-        self._miniGameReward = {}
+        
         url_list = [
             SYNC,
             LIST_TASKS,
@@ -112,23 +109,15 @@ class Client():
         
         if self.mainConfig.enableMiniGames:
             logger.info("<b>Check daily miniGames...</b>")
-            if self.miniGame:
-                logger.info(f"{'Mini-Game'.ljust(30, ' ')}\tAlready claimed ({self.totalKeys})")
-            else:
-                self._updateClientUserData(self.claimMiniGame(miniGameId="Candles"))
-                if self.miniGame:
-                    logger.success("{title}".format(title='Mini-Game'.ljust(30, ' ')) + 
-                                   "\t<green>Claimed</green> " + 
-                                   "(+{gameReward})".format(gameReward=self._miniGameReward.get("Candles", 0)))
-            
-            if self.miniTilesGame:
-                logger.info(f"{'Tiles miniGame'.ljust(30, ' ')}\tAlready claimed")
-            else:
-                self._updateClientUserData(self.claimMiniGame(miniGameId="Tiles"))
-                if self.miniTilesGame:
-                    logger.success("{title}".format(title="Tiles miniGame".ljust(30, " ")) +
-                                   "\t<green>Claimed</green> " + 
-                                   "(+{gameReward:,.2f})".format(gameReward=self._miniGameReward.get("Tiles", 0)).replace(",", " "))
+            for gameId in self._miniGames:
+                if self._miniGames[gameId]["isClaimed"]:
+                    logger.info("{gameId}".format(gameId=gameId).ljust(30, " ") + "\t" +
+                                "Already claimed")
+                else:
+                    self._updateClientUserData(self.claimMiniGame(gameId))
+                    if self._miniGames[gameId]["isClaimed"]:
+                        logger.success("{gameId}".format(gameId=gameId).ljust(30, " ") + "\t" + 
+                                       "Claimed ({reward:,})".format(reward=self._miniGames[gameId].get("Reward", 0)).replace(",", " "))
             logger.info("-" * SEP_LENGTH)
 
         if self.mainConfig.enableDailyTasks:
@@ -228,7 +217,7 @@ class Client():
         sleep(randint(15, 20))
         userData = {
             "miniGameId": miniGameId,
-            "cipher": self._miniGameCipher[miniGameId]
+            "cipher": self._miniGames[miniGameId]["Cipher"]
         }
         return request(url=CLAIM_DAILY_KEYS_MINIGAME, headers=self.userHeaders, data=userData)
 
@@ -321,24 +310,22 @@ class Client():
 
         if "dailyKeysMiniGames" in data:
             miniGameData = data["dailyKeysMiniGames"]
-            if "Candles" in miniGameData:
-                self.miniGame = miniGameData["Candles"]["isClaimed"]
-                self._miniGameCipher.update({
-                        miniGameData["Candles"]["id"]: self._getMiniGameCipher(miniGameData["Candles"])
-                    }) 
-            if "Tiles" in miniGameData:
-                self.miniTilesGame = miniGameData["Tiles"]["isClaimed"]
-                self._miniGameCipher.update({
-                        miniGameData["Tiles"]["id"]: self._getMiniGameCipher(miniGameData["Tiles"])
-                    })
             if "id" in miniGameData:
-                if miniGameData["id"] == "Tiles":
-                    self.miniTilesGame = miniGameData["isClaimed"]
-                elif miniGameData["id"] == "Candles":
-                     self.miniGame = miniGameData["isClaimed"]
-                self._miniGameReward.update({
-                    miniGameData["id"]: data.get("bonus", 0)
+                self._miniGames.update({
+                    miniGameData["id"]: {
+                        "isClaimed": miniGameData["isClaimed"],
+                        "Reward": data.get("bonus", 0)
+                    }
                 })
+            else:
+                for miniGame in miniGameData:
+                    self._miniGames.update({
+                        miniGame: {
+                            "isClaimed": miniGameData[miniGame].get("isClaimed", False),
+                            "Cipher":  self._getMiniGameCipher(miniGameData[miniGame]),
+                            "Reward": 0
+                        }
+                    })
 
         if "dailyCipher" in data:
             self.morseGame = data["dailyCipher"]["isClaimed"]
@@ -419,6 +406,8 @@ class Client():
         lenResult = len(str(round(self.balanceCoins, 2))) + (len(str(round(self.balanceCoins, 2))) - 4) // 3
         logger.info(f"{'limitCoinPrice'.ljust(30, ' ')}\t" +
                     f"{self.limitCoinPrice:,}".replace(",", " "))
+        logger.info("Total keys".ljust(30, " ") + "\t" + 
+                    "{totalKeys}".format(totalKeys=self.totalKeys))
         logger.info(f"{'AvailableTaps:'.ljust(30, ' ')}\t" +
                     f"{self.availableTaps:,} / {self.maxTaps:,}".replace(',', ' '))
         logger.info(f"{'Result balance:'.ljust(30, ' ')}\t" +
