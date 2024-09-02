@@ -141,6 +141,6 @@ class MainConfig():
     def minDelay(self) -> int:
         minDelay = self.defaultDelay
         minDelayClient = min(self.clients, key=lambda clientDelay: clientDelay.minDelay)
-        if minDelayClient.minDelay < minDelay:
+        if minDelayClient.minDelay > 0 and minDelayClient.minDelay < minDelay:
             minDelay = minDelayClient.minDelay
         return minDelay
