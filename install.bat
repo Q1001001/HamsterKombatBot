@@ -8,6 +8,6 @@ pip install -r requirements.txt
 ren def_conf.json conf.json
 echo Renamed def_conf.json to conf.json 
 
-echo Enter your account settings to the conf.json and run the hamster.bat
+echo Make your account settings to the conf.json and run the hamster.bat
 
 pause
