@@ -29,7 +29,7 @@ Hamster Kombat auto farm bot
         "YOUR USER NAME": {
             "name": "",             // Your user name
             "token": "",            // Your tokent like "Bearer 123123..."
-            "limitCoinPrice": 1000, // Limit of coin price to buy a card. coin price = card profitPerHourDelta / card price
+            "limitCoinPrice": 1000, // Limit of coin price to buy a card. coin price = card price / card profitPerHourDelta
             "minBalance": 0,        // Minimum Maintained Balance
             "excludeItems": []      // OPTIONAL! Cards id to exclude upgrade
         }
