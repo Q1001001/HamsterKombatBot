@@ -67,29 +67,30 @@ class PromoGame():
         promoKey = ""
         if not self.isLogin:
             self._updatePromoGameData(self.loginClien())
-        self.userHeaders.update({
-            "Authorization": f"Bearer {self.clientToken}"
-        })
-        retryCount = 1
-        retryMax = int(self.delay / self.delayRetry)
-        while retryCount <= retryMax and not self.hasCode:
-            delayRetry = self.delayRetry + randint(0, 5)
-            logger.info("Attempt to register an event " +
-                        "{rC}".format(rC=retryCount).rjust(2, " ") + " / " +
-                        "{rM}".format(rM=retryMax).rjust(2, " ") + " (retryDelay: ~" +
-                        "{dR}".format(dR=delayRetry) + " sec)")
-            sleep(delayRetry)
-            self._updatePromoGameData(self.registerEvent())
-            retryCount += 1
+        if self.clientToken:
+            self.userHeaders.update({
+                "Authorization": f"Bearer {self.clientToken}"
+            })
+            retryCount = 1
+            retryMax = int(self.delay / self.delayRetry)
+            while retryCount <= retryMax and not self.hasCode:
+                delayRetry = self.delayRetry + randint(0, 5)
+                logger.info("Attempt to register an event " +
+                            "{rC}".format(rC=retryCount).rjust(2, " ") + " / " +
+                            "{rM}".format(rM=retryMax).rjust(2, " ") + " (retryDelay: ~" +
+                            "{dR}".format(dR=delayRetry) + " sec)")
+                sleep(delayRetry)
+                self._updatePromoGameData(self.registerEvent())
+                retryCount += 1
 
-        if self.hasCode:
-            logger.success(f"<green>Event registered successfully.</green>")
-            self._updatePromoGameData(self.createCode())
-            promoKey = self.promoCode
-            if promoKey:
-                logger.success(f"<green>{promoKey}</green>")
-                self.hasCode = False
-                self.promoCode = ""
+            if self.hasCode:
+                logger.success(f"<green>Event registered successfully.</green>")
+                self._updatePromoGameData(self.createCode())
+                promoKey = self.promoCode
+                if promoKey:
+                    logger.success(f"<green>{promoKey}</green>")
+                    self.hasCode = False
+                    self.promoCode = ""
         return promoKey
 
     def createCode(self) -> dict:
