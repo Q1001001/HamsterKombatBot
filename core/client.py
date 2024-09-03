@@ -117,7 +117,7 @@ class Client():
                     self._updateClientUserData(self.claimMiniGame(gameId))
                     if self._miniGames[gameId]["isClaimed"]:
                         logger.success("{gameId}".format(gameId=gameId).ljust(30, " ") + "\t" + 
-                                       "Claimed ({reward:,})".format(reward=self._miniGames[gameId].get("Reward", 0)).replace(",", " "))
+                                       "Claimed (+{reward:,})".format(reward=self._miniGames[gameId].get("Reward", 0)).replace(",", " "))
             logger.info("-" * SEP_LENGTH)
 
         if self.mainConfig.enableDailyTasks:
