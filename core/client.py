@@ -352,7 +352,7 @@ class Client():
                                 "price": 1
                             })
                             self.upgradesForBuy.append(item)
-            self.upgradesForBuy.sort(key=lambda coinPrice: coinPrice["profitPerHourDelta"] / coinPrice["price"], reverse=True)
+            self.upgradesForBuy.sort(key=lambda coinPrice: coinPrice["price"] / coinPrice["profitPerHourDelta"])
             self.upgradesCooldown = list(filter(lambda cooldown: not cooldown.get("cooldownSeconds") is None, self.upgradesForBuy))
             self.upgradesCooldown = list(filter(lambda cooldown: cooldown.get("cooldownSeconds") > 0, self.upgradesCooldown))
             self.upgradesCooldown.sort(key=lambda cooldown: cooldown.get("cooldownSeconds"))
