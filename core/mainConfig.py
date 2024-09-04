@@ -69,14 +69,13 @@ class MainConfig():
     def initClients(self) -> None:
         clients = self.configRAW["clients"]
         self._clients = [Client(mainConfig=self, **clients[user]) for user in clients]
-        self._lenClients = len(self._clients)
         logger.info("-" * SEP_LENGTH + "\n")
         
     @property
     def lenClients(self):
-        if not hasattr(self, "_lenClients"):
+        if not hasattr(self, "_clients"):
             return 0
-        return self._lenClients
+        return len(self._clients)
         
     @property
     def clients(self):
@@ -134,7 +133,7 @@ class MainConfig():
                 clientObj.updateConfig(self, configData["clients"])
                 logger.info(f"{clientName}".ljust(30, " ") + "\tUpdated")
             else:
-                self.clients.append(Client(configData["promoGames"], self, **configData["clients"][clientName]))
+                self.clients.append(Client(mainConfig=self, **configData["clients"][clientName]))
         logger.info("-" * SEP_LENGTH + "\n\n")
 
     @logger.catch
