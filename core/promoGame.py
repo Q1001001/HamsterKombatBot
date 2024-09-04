@@ -67,6 +67,7 @@ class PromoGame():
         promoKey = ""
         if not self.isLogin:
             self._updatePromoGameData(self.loginClien())
+            sleep(120)
         if self.clientToken:
             self.userHeaders.update({
                 "Authorization": f"Bearer {self.clientToken}"

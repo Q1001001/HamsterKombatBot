@@ -171,11 +171,16 @@ class Client():
                     promoKey = gameObj.genPromoKey()
                     if promoKey:
                         if self._updateClientUserData(self.promoCode(promoKey=promoKey)):
-                            logger.success("{promoName}".format(promoName=gameObj.title).ljust(30, " ") + "\t" +
-                                        "<green>{rKD}</green> / ".format(rKD=gameObj.receiveKeysToday) +
-                                        "{kPD}".format(kPD=gameObj.keysPerDay))
+                            if self._promoReward.get("type", "keys") == "keys":
+                                logger.success("{promoName}".format(promoName=gameObj.title).ljust(30, " ") + "\t" +
+                                            "<green>{rKD}</green> / ".format(rKD=gameObj.receiveKeysToday) +
+                                            "{kPD}".format(kPD=gameObj.keysPerDay))
+                            else:
+                                promoReward = self._promoReward["amount"]
+                                logger.success("{promoName}".format(promoName=gameObj.title).ljust(30, " ") + "\t" +
+                                            "<green>+{promoReward:,}</green>".format(promoReward=promoReward).replace(",", " "))
                     else:
-                        logger.warning("{promoName}".format(promoName=gameObj.title).ljust(30, " ") + "\tUnable to get a key")
+                        logger.warning("{promoName}".format(promoName=gameObj.title).ljust(30, " ") + "\tUnable to get a promo code")
                     logger.info("-" * SEP_LENGTH + "\n")
     
     def _isNeedPromoGamesKeyGen(self) -> bool:
@@ -284,6 +289,7 @@ class Client():
 
     @logger.catch
     def _updateClientUserData(self, data: dict) -> bool:
+        self._promoReward = {}
         if "error_message" in data:
             logger.error(data["error_message"])
             return False
@@ -398,6 +404,9 @@ class Client():
             if gameObj:
                 gameObj.updateState(data["promoState"])
             self.isAllKeysCollected = not self._isNeedPromoGamesKeyGen()
+            
+        if "reward" in data:
+            self._promoReward = data["reward"]
             
         return True
 

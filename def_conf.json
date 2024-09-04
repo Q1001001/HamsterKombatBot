@@ -188,6 +188,36 @@
             "eventType": "ZoopolisEvent",
             "delay": 400,
             "delayRetry": 20
+        },
+        "e68b39d2-4880-4a31-b3aa-0393e7df10c7": {
+            "name": "Tile Trio",
+            "appToken": "e68b39d2-4880-4a31-b3aa-0393e7df10c7",
+            "promoId": "e68b39d2-4880-4a31-b3aa-0393e7df10c7",
+            "userAgent": "",
+            "x-unity-version": null,
+            "clientOrigin": "deviceid",
+            "clientIdType": "type1",
+            "clientVersion": null,
+            "eventIdType": "uuid",
+            "eventOrigin": "undefined",
+            "eventType": null,
+            "delay": 500,
+            "delayRetry": 25
+        },
+        "112887b0-a8af-4eb2-ac63-d82df78283d9": {
+            "name": "Fluff Crusade",
+            "appToken": "112887b0-a8af-4eb2-ac63-d82df78283d9",
+            "promoId": "112887b0-a8af-4eb2-ac63-d82df78283d9",
+            "userAgent": "",
+            "x-unity-version": null,
+            "clientOrigin": "deviceid",
+            "clientIdType": "type1",
+            "clientVersion": null,
+            "eventIdType": "uuid",
+            "eventOrigin": "undefined",
+            "eventType": null,
+            "delay": 500,
+            "delayRetry": 25
         }
     },
     "clients": {
