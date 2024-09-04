@@ -13,7 +13,6 @@ def main():
         HamsterConfig.initClients()
         promoIndex = 0
         while True:
-            isNeedKeyGen = False
             clientIndex = 0
             while clientIndex < HamsterConfig.lenClients:
                 HamsterConfig.getHamster(clientIndex).sync()

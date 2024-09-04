@@ -6,7 +6,7 @@ from .client import Client
 class MainConfig():
     def __init__(self) -> None:
         self._filepath = "conf.json"
-        self._promoGamesCollect = []
+        self._promoGamesCollect: list[object] = []
         self.loadConfig()
         logger.info(f"conf.json init".center(SEP_LENGTH, "-"))
         

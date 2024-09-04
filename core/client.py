@@ -30,8 +30,8 @@ from .promoGame import PromoGame
 class Client():
     def __init__(self, mainConfig: object, **kwargs):
         self.name = kwargs.get("name")
-        self._promoGamesObj = []
-        self._miniGames = {}
+        self._promoGamesObj: list[object] = []
+        self._miniGames: dict[str, dict] = {}
         self.isAllKeysCollected = False
         self.setInitValues(mainConfig=mainConfig, **kwargs)
         logger.info(f"{self.name}".ljust(30, " ") + f"\t<green>added</green>")
@@ -44,7 +44,7 @@ class Client():
         self.mainConfig = mainConfig
         self.limitCoinPrice = kwargs.get("limitCoinPrice")
         self.minBalance = kwargs.get("minBalance")
-        self.excludeItems = []
+        self.excludeItems: list[str] = []
         if kwargs.get("excludeItems"):
             self.excludeItems.extend(kwargs.get("excludeItems"))
         self.userHeaders = {
@@ -388,7 +388,7 @@ class Client():
                     del_gameList.append(gameObj.promoId)
             
             for promoId in del_gameList:
-                gameObj = self.getPromoGameByID(gameObjId)
+                gameObj = self.getPromoGameByID(promoId)
                 if gameObj:
                     self.promoGamesObj.remove(gameObj)
                 
