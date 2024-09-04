@@ -291,9 +291,9 @@ class Client():
         if "clickerUser" in data:
             clickerUser = data["clickerUser"]
             self.id = clickerUser["id"]
-            self.totalKeys = clickerUser["totalKeys"]
-            self.balanceCoins = clickerUser["balanceCoins"]
-            self.totalCoins = clickerUser["totalCoins"]
+            self.totalKeys = clickerUser.get("totalKeys", 0)
+            self.balanceCoins = clickerUser.get("balanceCoins", 0)
+            self.totalCoins = clickerUser.get("totalCoins", 0)
             self.level = clickerUser["level"]
             self.availableTaps = clickerUser["availableTaps"]
             self.earnPerTap = clickerUser["earnPerTap"]

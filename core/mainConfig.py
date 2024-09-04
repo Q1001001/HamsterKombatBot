@@ -5,7 +5,6 @@ from .client import Client
 
 class MainConfig():
     def __init__(self) -> None:
-        # self._filepath = os.path.join(os.path.dirname(__file__), "conf.json")
         self._filepath = "conf.json"
         self._promoGamesCollect = []
         self.loadConfig()
