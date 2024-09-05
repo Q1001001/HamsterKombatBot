@@ -123,11 +123,12 @@ class Client():
         if self.mainConfig.enableDailyTasks:
             logger.info("<b>Check daily tasks...</b>")
             if self.isStreakDays:
-                logger.info(f"{'streak_days'.ljust(30, ' ')}\tAlready claimed")
+                logger.info(f"{'streak_days_special'.ljust(30, ' ')}\tAlready claimed")
             else:
-                self._updateClientUserData(self.streakDays())
+                # self._updateClientUserData(self.streakDays(taskId="streak_days"))
+                self._updateClientUserData(self.streakDays(taskId="streak_days_special"))
                 if self.isStreakDays:
-                    logger.info(f"{'streak_days'.ljust(30, ' ')}\t<green>Claimed</green>")
+                    logger.info(f"{'streak_days_special'.ljust(30, ' ')}\t<green>Claimed</green>")
 
             if self.combo:
                 logger.info(f"{'dailyCombo'.ljust(30, ' ')}\tAlready claimed")
@@ -205,9 +206,9 @@ class Client():
     def dailyCombo(self) -> dict:
         return request(url=CLAIM_DAILY_COMBO, headers=self.userHeaders)
 
-    def streakDays(self) -> dict:
+    def streakDays(self, taskId) -> dict:
         userData = {
-            "taskId": "streak_days"
+            "taskId": taskId
         }
         return request(url=CHECK_TASKS, headers=self.userHeaders, data=userData)
     
@@ -310,9 +311,17 @@ class Client():
             self.boosts = clickerUser["boosts"]
 
         if "tasks" in data:
+            self.isStreakDays = False
             for task in data["tasks"]:
-                if task["id"] == "streak_days":
+                # if task["id"] == "streak_days":
+                #     self.isStreakDays = task["isCompleted"]
+                if task["id"] == "streak_days_special":
                     self.isStreakDays = task["isCompleted"]
+        
+        if "task" in data:
+            self.isStreakDays = False
+            if data["task"]["id"] == "streak_days_special":
+                self.isStreakDays = data["task"]["isCompleted"]
 
         if "dailyKeysMiniGames" in data:
             miniGameData = data["dailyKeysMiniGames"]
