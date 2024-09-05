@@ -218,6 +218,21 @@
             "eventType": null,
             "delay": 500,
             "delayRetry": 25
+        },
+        "04ebd6de-69b7-43d1-9c4b-04a6ca3305af": {
+            "name": "Stone Age",
+            "appToken": "04ebd6de-69b7-43d1-9c4b-04a6ca3305af",
+            "promoId": "04ebd6de-69b7-43d1-9c4b-04a6ca3305af",
+            "userAgent": "",
+            "x-unity-version": null,
+            "clientOrigin": "deviceid",
+            "clientIdType": "type1",
+            "clientVersion": null,
+            "eventIdType": "uuid",
+            "eventOrigin": "undefined",
+            "eventType": null,
+            "delay": 500,
+            "delayRetry": 25
         }
     },
     "clients": {

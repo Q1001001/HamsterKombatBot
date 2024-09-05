@@ -63,7 +63,7 @@ class PromoGame():
 
     @logger.catch
     def genPromoKey(self) -> str:
-        logger.info(f"Generate {self.name} promo-key")
+        logger.info(f"Generate {self.title} promo-key")
         promoKey = ""
         if not self.isLogin:
             self._updatePromoGameData(self.loginClien())
