@@ -8,6 +8,7 @@ from .common import (logger,
                     sha256,
                     datetime,
                     SEP_LENGTH,
+                    CLIENT_LEVEL,
                     GET_PROMOS,
                     UPGRADES_FOR_BUY,
                     BUY_UPGRADE,
@@ -128,7 +129,7 @@ class Client():
                 # self._updateClientUserData(self.streakDays(taskId="streak_days"))
                 self._updateClientUserData(self.streakDays(taskId="streak_days_special"))
                 if self.isStreakDays:
-                    logger.info(f"{'streak_days_special'.ljust(30, ' ')}\t<green>Claimed</green>")
+                    logger.success(f"{'streak_days_special'.ljust(30, ' ')}\t<green>Claimed</green>")
 
             if self.combo:
                 logger.info(f"{'dailyCombo'.ljust(30, ' ')}\tAlready claimed")
@@ -137,7 +138,7 @@ class Client():
             else:
                 self._updateClientUserData(self.dailyCombo())
                 if self.combo:
-                    logger.info(f"{'dailyCombo'.ljust(30, ' ')}\t<green>Claimed</green>")
+                    logger.success(f"{'dailyCombo'.ljust(30, ' ')}\t<green>Claimed</green>")
             logger.info("-" * SEP_LENGTH)
 
         if self.mainConfig.enablePromoGames:
@@ -154,7 +155,7 @@ class Client():
             upgradeList = list(filter(lambda upgradeItem: (upgradeItem['price'] / upgradeItem['profitPerHourDelta']) <= self.limitCoinPrice, self.upgradesForBuy))
             for item in upgradeList:
                 if self._isUpgradable(item):
-                    logger.success(f"{item.get('id').ljust(30, ' ')}\t" +
+                    logger.info(f"{item.get('id').ljust(30, ' ')}\t" +
                                 "{pPHD:,} / ".format(pPHD=item["profitPerHourDelta"]).replace(",", " ").rjust(10, " ") +
                                 "{cardPrice:,} \t".format(cardPrice=item["price"]).replace(",", " ").rjust(13, " ") +
                                 "{coinPrice:,.2f}".format(coinPrice=item['price'] / item['profitPerHourDelta']).replace(",", " ").rjust(12, " "))
@@ -309,6 +310,7 @@ class Client():
             self.earnPassivePerSec = clickerUser["earnPassivePerSec"]
             self.maxTaps = clickerUser["maxTaps"]
             self.boosts = clickerUser["boosts"]
+            self.balanceTickets = clickerUser.get("balanceTickets", 0)
 
         if "tasks" in data:
             self.isStreakDays = False
@@ -421,13 +423,19 @@ class Client():
 
     def status(self) -> None:
         logger.info("<b>Status...</b>")
-        lenResult = len(str(round(self.balanceCoins, 2))) + (len(str(round(self.balanceCoins, 2))) - 4) // 3
+        lenResult = len(str(round(self.totalCoins, 2))) + (len(str(round(self.totalCoins, 2))) - 4) // 3
         logger.info(f"{'limitCoinPrice'.ljust(30, ' ')}\t" +
                     f"{self.limitCoinPrice:,}".replace(",", " "))
+        logger.info(f"{'Level:'.ljust(30, " ")}\t" + 
+                    f"{CLIENT_LEVEL.get(self.level, "")}")
         logger.info("Total keys".ljust(30, " ") + "\t" + 
                     "{totalKeys}".format(totalKeys=self.totalKeys))
+        logger.info("Tickets".ljust(30, " ") + "\t" + 
+                    "{tickets}".format(tickets=self.balanceTickets))
         logger.info(f"{'AvailableTaps:'.ljust(30, ' ')}\t" +
                     f"{self.availableTaps:,} / {self.maxTaps:,}".replace(',', ' '))
+        logger.info(f"{'Total coins:'.ljust(30, ' ')}\t" + 
+                    "{totalCoins:,.2f}".format(totalCoins=self.totalCoins).replace(",", " ").rjust(lenResult, " "))
         logger.info(f"{'Result balance:'.ljust(30, ' ')}\t" +
                     "{balance:,.2f}".format(balance=round(self.balanceCoins, 2)).replace(",", " ").rjust(lenResult, " ") +
                     f" (min: {round(self.minBalance, 2):,.2f})".replace(',', ' '))

@@ -37,6 +37,20 @@ PROMO_CREATE_CODE = PROMO_DOMAIN + "/create-code"
 
 SEP_LENGTH = 75
 
+CLIENT_LEVEL = {
+    1: "Bronze",
+    2: "Silver",
+    3: "Gold",
+    4: "Platinum",
+    5: "Diamond",
+    6: "Epic",
+    7: "Legendary",
+    8: "Master",
+    9: "Grandmaster",
+    10: "Lord",
+    11: "Creator"
+}
+
 
 logger.remove()
 logger.add(sys.stdout, colorize=True, level="INFO",
@@ -44,7 +58,7 @@ logger.add(sys.stdout, colorize=True, level="INFO",
            "<level>{level: <8}</level> | - <level>{message}</level>")
 logger = logger.opt(colors=True)
 
-# logger.add("log.txt", level="INFO",
+# logger.add("logErrors.txt", level="ERROR",
 #            format="<green>{time:YYYY-MM-DD HH:mm:ss.SSS}</green> | "
 #            "<level>{level: <8}</level> | <cyan>{name}</cyan>:<cyan>{function}"
 #            "</cyan>:<cyan>{line}</cyan> - <level>{message}</level>",
