@@ -426,8 +426,8 @@ class Client():
         lenResult = len(str(round(self.totalCoins, 2))) + (len(str(round(self.totalCoins, 2))) - 4) // 3
         logger.info(f"{'limitCoinPrice'.ljust(30, ' ')}\t" +
                     f"{self.limitCoinPrice:,}".replace(",", " "))
-        logger.info(f"{'Level:'.ljust(30, " ")}\t" + 
-                    f"{CLIENT_LEVEL.get(self.level, "")}")
+        logger.info(f"{'Level:'.ljust(30, ' ')}\t" + 
+                    f"{CLIENT_LEVEL.get(self.level, 'Unknown level')}")
         logger.info("Total keys".ljust(30, " ") + "\t" + 
                     "{totalKeys}".format(totalKeys=self.totalKeys))
         logger.info("Tickets".ljust(30, " ") + "\t" + 
