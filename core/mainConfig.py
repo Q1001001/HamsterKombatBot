@@ -5,7 +5,8 @@ from .client import Client
 
 class MainConfig():
     def __init__(self) -> None:
-        self._filepath = "conf.json"
+        self._mainConfName = "conf.json"
+        self._promoConfName = "promoGames.json"
         self._promoGamesCollect: list[object] = []
         self.loadConfig()
         logger.info(f"conf.json init".center(SEP_LENGTH, "-"))
@@ -16,22 +17,14 @@ class MainConfig():
     @logger.catch
     def loadConfig(self) -> bool:
         try:
-            configFile = open(self._filepath, "r")
+            with open(self._mainConfName, "r") as configMainFile:
+                self.configRAW = json.loads(configMainFile.read())
         except FileNotFoundError:
-            logger.error(f"Config file not found!")
+            logger.error(f"{self._mainConfName} config file not found!")
             return False
-
-        configContent = configFile.read()
-        configFile.close()
-
-        try:
-            self.configRAW = json.loads(configContent)
         except json.JSONDecodeError as er:
-            logger.error(f"Wrong file {self._filepath}: {er}")
+            logger.error(f"Wrong file {self._mainConfName}: {er}")
             return False
-        
-        if "promoGames" in self.configRAW:
-            self.promoGames = self.configRAW["promoGames"]
 
         options = self.configRAW.get("options")
         if not options:
@@ -44,6 +37,17 @@ class MainConfig():
         self.enableUpgrade = options.get("enableUpgrade", False)
         self.defaultDelay = options.get("defaultDelay", 3600)
         self.enablePromoGames = options.get("enablePromoGames", False)
+        
+        if self.enablePromoGames:
+            try:
+                with open(self._promoConfName, "r") as configPromoFile:
+                    self.promoGames = json.loads(configPromoFile.read())
+            except FileNotFoundError:
+                logger.error(f"{self._promoConfName} config file not found!")
+                self.enablePromoGames = False
+            except json.JSONDecodeError as er:
+                logger.error(f"Wrong file {self._promoConfName}: {er}")
+                self.enablePromoGames = False
         return True
     
     @property
