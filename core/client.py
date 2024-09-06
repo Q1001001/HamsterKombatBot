@@ -350,7 +350,7 @@ class Client():
             if not self.morseGame:
                 self.morseCipher = data["dailyCipher"]["cipher"]
 
-        if 'dailyCombo' in data:
+        if "dailyCombo" in data:
             self.combo = data["dailyCombo"]["isClaimed"]
             self.comboUpgrades = data["dailyCombo"]["upgradeIds"]
 
