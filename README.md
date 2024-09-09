@@ -1,7 +1,8 @@
 # Hamster Kombat Bot
 
-Hamster Kombat auto farm bot
+Hamster Kombat auto farm bot. The developer is not responsible for any consequences of using this bot.
 
+Use it at your own risk!
 ## Screenshots
 
 ![App Screenshot](https://github.com/user-attachments/assets/311b661f-12d6-463d-8399-a4b3528752ce)
@@ -19,6 +20,19 @@ Hamster Kombat auto farm bot
         "enableUpgrade": true,      // Auto upgrade cards.
         "enablePromoGames": true,   // Auto promo keys gen and claim
         "defaultDelay": 3600        // MAX delay(sec) per check. Less then 1800 deactivate promoGames
+    },
+```
+
+#### mini Games options
+
+```text
+"miniGames": {
+        "Tiles": {                  // Mini Game ID
+            "delay": 3600           // Delay in seconds between starting the game and receiving the reward
+        },
+        "Candles": {                // Mini Game ID
+            "delay": 15             // Delay in seconds between starting the game and receiving the reward
+        }
     },
 ```
 

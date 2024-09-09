@@ -26,6 +26,7 @@ class MainConfig():
             logger.error(f"Wrong file {self._mainConfName}: {er}")
             return False
 
+        self.miniGamesConf = self.configRAW.get("miniGames")
         options = self.configRAW.get("options")
         if not options:
             return False

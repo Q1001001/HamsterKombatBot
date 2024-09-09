@@ -19,7 +19,7 @@ def main():
                 HamsterConfig.getHamster(clientIndex).status()
                 HamsterConfig.promoGamesCollect(HamsterConfig.getHamster(clientIndex))
                 clientIndex += 1
-            minDelay = randint(1, 30)
+            minDelay = randint(1, 20)
             minDelay += HamsterConfig.minDelay()
             iterTime = time()
 
@@ -34,7 +34,6 @@ def main():
                     promoIndex = 0
             remainsDelay = int((iterTime + minDelay) - time())
             if remainsDelay > 0:
-                
                 logger.info(f"Continue in {remainsDelay} sec ({datetime.fromtimestamp(time() + remainsDelay).strftime('%d.%m.%Y, %H:%M:%S')})")
                 logger.info("*" * SEP_LENGTH + "\n\n")
                 sleep(remainsDelay)

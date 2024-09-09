@@ -54,7 +54,7 @@ class Client():
             "Content-Type": "application/json",
         }
         self._updateClientUserData(request(url=GET_PROMOS, headers=self.userHeaders))
-        self.minDelay = 0
+        self.minDelay = self.mainConfig.defaultDelay
     
     @property
     def promoGamesObj(self):
@@ -76,6 +76,7 @@ class Client():
 
     @logger.catch
     def sync(self) -> None:
+        self.minDelay = self.mainConfig.defaultDelay
         logger.info(f"<b>{self.name}</b>")
         logger.info("-" * SEP_LENGTH)
         
@@ -115,10 +116,27 @@ class Client():
                     logger.info("{gameId}".format(gameId=gameId).ljust(30, " ") + "\t" +
                                 "Already claimed")
                 else:
-                    self._updateClientUserData(self.claimMiniGame(gameId))
-                    if self._miniGames[gameId]["isClaimed"]:
-                        logger.success("{gameId}".format(gameId=gameId).ljust(30, " ") + "\t" + 
-                                       "Claimed (+{reward:,})".format(reward=self._miniGames[gameId].get("Reward", 0)).replace(",", " "))
+                    miniGameDelay = self.mainConfig.defaultDelay
+                    if self._miniGames[gameId].get("timeStartAt", 0) == 0:
+                        self._startMiniGame(gameId)
+                        if gameId in self.mainConfig.miniGamesConf:
+                            miniGameDelay =  self.mainConfig.miniGamesConf[gameId].get("delay", 20)
+                        self._miniGames[gameId].update({
+                            "timeStartAt": int(time()),
+                            "timeEndAt": int(time()) + miniGameDelay
+                        })
+                        logger.info("{gameId}".format(gameId=gameId).ljust(30, " ") + "\t" + 
+                                    "<green>Game started (delay {miniGameDelay})</green>".format(miniGameDelay=miniGameDelay))
+                    else:
+                        if self._miniGames[gameId].get("timeEndAt", 0) <= time():
+                            self._updateClientUserData(self.claimMiniGame(gameId))
+                            if self._miniGames[gameId]["isClaimed"]:
+                                logger.success("{gameId}".format(gameId=gameId).ljust(30, " ") + "\t" + 
+                                               "Claimed (+{reward:,})".format(reward=self._miniGames[gameId].get("Reward", 0)).replace(",", " "))
+                        else:
+                            miniGameDelay = self._miniGames[gameId]["timeEndAt"] - int(time())
+                    if self.minDelay > miniGameDelay:
+                        self.minDelay = miniGameDelay
             logger.info("-" * SEP_LENGTH)
 
         if self.mainConfig.enableDailyTasks:
@@ -220,8 +238,6 @@ class Client():
         request(url=START_MINI_GAME, headers=self.userHeaders, data=userData)
 
     def claimMiniGame(self, miniGameId: str) -> None:
-        self._startMiniGame(miniGameId)
-        sleep(randint(15, 20))
         userData = {
             "miniGameId": miniGameId,
             "cipher": self._miniGames[miniGameId]["Cipher"]
@@ -328,21 +344,24 @@ class Client():
         if "dailyKeysMiniGames" in data:
             miniGameData = data["dailyKeysMiniGames"]
             if "id" in miniGameData:
-                self._miniGames.update({
-                    miniGameData["id"]: {
-                        "isClaimed": miniGameData["isClaimed"],
-                        "Reward": data.get("bonus", 0)
-                    }
+                self._miniGames[miniGameData["id"]].update({
+                    "isClaimed": miniGameData["isClaimed"],
+                    "Reward": data.get("bonus", 0)
                 })
             else:
                 for miniGame in miniGameData:
-                    self._miniGames.update({
-                        miniGame: {
-                            "isClaimed": miniGameData[miniGame].get("isClaimed", False),
-                            "Cipher":  self._getMiniGameCipher(miniGameData[miniGame]),
-                            "Reward": 0
-                        }
+                    if not miniGame in self._miniGames:
+                        self._miniGames.update({
+                            miniGame: {}
+                        })
+                    self._miniGames[miniGame].update({
+                        "isClaimed": miniGameData[miniGame].get("isClaimed", False),
+                        "Cipher":  self._getMiniGameCipher(miniGameData[miniGame]),
+                        "Reward": 0
                     })
+                for miniGame in self._miniGames:
+                    if not miniGame in miniGameData:
+                        self._miniGames.remove(miniGame)
 
         if "dailyCipher" in data:
             self.morseGame = data["dailyCipher"]["isClaimed"]
@@ -357,7 +376,6 @@ class Client():
         if "upgradesForBuy" in data:
             self.upgradesForBuy = []
             self.upgradesCooldown = []
-            self.minDelay = 0
             for item in data["upgradesForBuy"]:
                 if item["isAvailable"] and not item["isExpired"]:
                     if item["profitPerHourDelta"] > 0:
@@ -374,7 +392,8 @@ class Client():
             self.upgradesCooldown = list(filter(lambda cooldown: cooldown.get("cooldownSeconds") > 0, self.upgradesCooldown))
             self.upgradesCooldown.sort(key=lambda cooldown: cooldown.get("cooldownSeconds"))
             if self.upgradesCooldown:
-                self.minDelay = self.upgradesCooldown[0]["cooldownSeconds"]
+                if self.minDelay > self.upgradesCooldown[0]["cooldownSeconds"]:
+                    self.minDelay = self.upgradesCooldown[0]["cooldownSeconds"]
 
         if "boostsForBuy" in data:
             self.isAvailableTapsBoost = False
