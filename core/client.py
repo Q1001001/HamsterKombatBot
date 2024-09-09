@@ -423,14 +423,14 @@ class Client():
 
     def status(self) -> None:
         logger.info("<b>Status...</b>")
-        lenResult = len(str(round(self.totalCoins, 2))) + (len(str(round(self.totalCoins, 2))) - 4) // 3
-        logger.info(f"{'limitCoinPrice'.ljust(30, ' ')}\t" +
+        lenResult = len("{totalCoins:,.2f}".format(totalCoins=self.totalCoins).replace(",", " "))
+        logger.info(f"{'limitCoinPrice:'.ljust(30, ' ')}\t" +
                     f"{self.limitCoinPrice:,}".replace(",", " "))
         logger.info(f"{'Level:'.ljust(30, ' ')}\t" + 
                     f"{CLIENT_LEVEL.get(self.level, 'Unknown level')}")
-        logger.info("Total keys".ljust(30, " ") + "\t" + 
+        logger.info("Total keys:".ljust(30, " ") + "\t" + 
                     "{totalKeys}".format(totalKeys=self.totalKeys))
-        logger.info("Tickets".ljust(30, " ") + "\t" + 
+        logger.info("Tickets:".ljust(30, " ") + "\t" + 
                     "{tickets}".format(tickets=self.balanceTickets))
         logger.info(f"{'AvailableTaps:'.ljust(30, ' ')}\t" +
                     f"{self.availableTaps:,} / {self.maxTaps:,}".replace(',', ' '))
