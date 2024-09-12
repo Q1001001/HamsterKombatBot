@@ -12,69 +12,51 @@ from .common import (request,
 # from .mainConfig import MainConfig
 
 class PromoGame():
-    def __init__(self, hamsterName: str, promoGame: dict, mainConfig: object):
-        self.isActive = False
-        self.promoId = promoGame["promoId"]
-        self.title = promoGame["title"]["en"]
-        self.keysPerDay = promoGame["keysPerDay"]
-        self.receiveKeysToday = 0
-        self.hamsterName = hamsterName
-        self.setInitParams(mainConfig)
-        self.hasCode = False
-        self.isLogin = False
+    def __init__(self, mainConfig: object, **kwargs):
+        self.promoId = kwargs["promoId"]
+        self.title = kwargs["title"]
         self.userHeaders = {
             "Host": "api.gamepromo.io",
             "Origin": "",
             "Referer": "",
             "Content-Type": "application/json; charset=utf-8",
         }
-        logger.info(f"{self.title}".ljust(30, " ") + f"\t<green>added</green> to {self.hamsterName}")
+        self.setInitParams(**kwargs)
+        self.hasCode = False
+        logger.info(f"{self.title}".ljust(30, " ") + f"\t<green>Activated</green>")
         
     def __del__(self):
-        logger.info(f"{self.title}".ljust(30, " ") + f"\t<red>removed</red> from {self.hamsterName}")
+        logger.info(f"{self.title}".ljust(30, " ") + f"\t<red>Removed</red>")
         
-    def setInitParams(self, mainConfig: object) -> None:
-        self.mainConfig = mainConfig
-        if not self.promoId in self.mainConfig.promoGames:
-            self.isActive = False
-            return
-        config = self.mainConfig.promoGames[self.promoId]
-        self.name = config.get("name")
-        self.appToken = config.get("appToken")
-        self.userAgent = config.get("userAgent")
-        self.x_unity_version = config.get("x-unity-version")
-        self.clientOrigin = config.get("clientOrigin")
-        self.clientIdType = config.get("clientIdType")
-        self.clientVersion = config.get("clientVersion")
-        self.eventIdType = config.get("eventIdType")
-        self.eventOrigin = config.get("eventOrigin")
-        self.eventType = config.get("eventType")
-        self.delay = config.get("delay")
-        self.delayRetry = config.get("delayRetry")
-        self.isActive = True
-        
-    def updateState(self, state: dict) -> None:
-        self.receiveKeysToday = state["receiveKeysToday"]
-        if self.receiveKeysToday == self.keysPerDay:
-            self.isActive = False
+    def setInitParams(self, **kwargs) -> None:
+        self.title = kwargs.get("title")
+        self.appToken = kwargs.get("appToken")
+        self.userAgent = kwargs.get("userAgent")
+        self.x_unity_version = kwargs.get("x-unity-version")
+        self.clientOrigin = kwargs.get("clientOrigin")
+        self.clientIdType = kwargs.get("clientIdType")
+        self.clientVersion = kwargs.get("clientVersion")
+        self.eventIdType = kwargs.get("eventIdType")
+        self.eventOrigin = kwargs.get("eventOrigin")
+        self.eventType = kwargs.get("eventType")
+        self.delay = kwargs.get("delay")
+        self.delayRetry = kwargs.get("delayRetry")
+        self._updatePromoGameData(self.loginClient())
     
-    def updateConfig(self, mainConfig) -> None:
-        self.setInitParams(mainConfig)
+    def updateConfig(self, **kwargs) -> None:
+        self.setInitParams(**kwargs)
 
     @logger.catch
     def genPromoKey(self) -> str:
         logger.info(f"Generate {self.title} promo-key")
         promoKey = ""
-        if not self.isLogin:
-            self._updatePromoGameData(self.loginClien())
-            sleep(120)
         if self.clientToken:
             self.userHeaders.update({
                 "Authorization": f"Bearer {self.clientToken}"
             })
             retryCount = 1
             retryMax = int(self.delay / self.delayRetry)
-            while retryCount <= retryMax and not self.hasCode:
+            while retryCount <= retryMax and not self.hasCode and self.clientToken:
                 delayRetry = self.delayRetry + randint(0, 5)
                 logger.info("Attempt to register an event " +
                             "{rC}".format(rC=retryCount).rjust(2, " ") + " / " +
@@ -119,7 +101,7 @@ class PromoGame():
             })
         return request(url=PROMO_REGISTER_EVENT, headers=self.userHeaders, data=userData)
 
-    def loginClien(self) -> dict:
+    def loginClient(self) -> dict:
         clientID = f"{int(time() * 1000)}-{''.join(str(randint(0, 9)) for _ in range(19))}"
         if self.clientIdType == "32str":
             clientID = "".join(choices("abcdefghijklmnopqrstuvwxyz0123456789", k=32))
@@ -147,7 +129,18 @@ class PromoGame():
 
     def _updatePromoGameData(self, data: dict) -> None:
         if "error_message" in data:
-            logger.error(data["error_message"])
+            err_message = data["error_message"]
+            logger.error(err_message)
+            
+            if err_message == "Session expired":
+                self.clientToken = ""
+                logger.info("Attempt to update session...")
+                self._updatePromoGameData(self.loginClient())
+                
+            if err_message == "Too many login attempts from single ip":
+                logger.info("Attempt to relogin...".ljust(30, " ") + "\t~360 sec")
+                sleep(360)
+                self._updatePromoGameData(self.loginClient())
             return
 
         if "message" in data:
@@ -156,7 +149,6 @@ class PromoGame():
 
         if "clientToken" in data:
             self.clientToken = data["clientToken"]
-            self.isLogin = True
 
         if "hasCode" in data:
             self.hasCode = data["hasCode"]

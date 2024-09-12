@@ -2,6 +2,7 @@ import requests
 import sys
 import os
 import json
+import gc
 from uuid import uuid4
 from loguru import logger
 from fake_useragent import UserAgent

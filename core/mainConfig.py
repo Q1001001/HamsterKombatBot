@@ -1,12 +1,13 @@
-from .common import logger, SEP_LENGTH
-from .common import os, json
+from .common import os, json, logger, sleep, choices, SEP_LENGTH
 from .client import Client
+from .promoGame import PromoGame
 
 
 class MainConfig():
     def __init__(self) -> None:
         self._mainConfName = "conf.json"
         self._promoConfName = "promoGames.json"
+        self._promoGames: dict[str, object] = {}
         self._promoGamesCollect: list[object] = []
         self.loadConfig()
         logger.info(f"conf.json init".center(SEP_LENGTH, "-"))
@@ -42,7 +43,7 @@ class MainConfig():
         if self.enablePromoGames:
             try:
                 with open(self._promoConfName, "r") as configPromoFile:
-                    self.promoGames = json.loads(configPromoFile.read())
+                    self.promoGamesConf = json.loads(configPromoFile.read())
             except FileNotFoundError:
                 logger.error(f"{self._promoConfName} config file not found!")
                 self.enablePromoGames = False
@@ -52,37 +53,60 @@ class MainConfig():
         return True
     
     @property
+    def clientsPromoGames(self):
+        promoGames: list = []
+        for client in self.clients:
+            promoGames.extend([promoId for promoId in client.promoGames if client.getPromoGameByID(promoId).isActive])
+        return list(set(promoGames))
+    
+    @property
     def promoGames(self) -> dict:
         if not hasattr(self, "_promoGames"):
             return {}
         return self._promoGames
     
-    @promoGames.setter
-    def promoGames(self, value):
-        self._promoGames = value
-    
-    def promoGamesCollect(self, client: object = None) -> dict:
-        if client:
-            if client.isAllKeysCollected:
-                if client in self._promoGamesCollect:
-                    self._promoGamesCollect.remove(client)
-            elif not client in self._promoGamesCollect:
-                self._promoGamesCollect.append(client)
-        return self._promoGamesCollect
+    # @promoGames.setter
+    # def promoGames(self, value):
+    #     self._promoGames = value
     
     def initClients(self) -> None:
         clients = self.configRAW["clients"]
         self._clients = [Client(mainConfig=self, **clients[user]) for user in clients]
         logger.info("-" * SEP_LENGTH + "\n")
         
+    def initPromoGames(self) -> None:
+        isTimeoutNeed = False
+        for promoId in self.promoGamesConf:
+            if promoId in self.clientsPromoGames:
+                promoGame = self.promoGames.get(promoId, None)
+                if promoGame is None:
+                    isTimeoutNeed = True
+                    promoGame = PromoGame(mainConfig=self, **self.promoGamesConf[promoId])
+                promoGame.updateConfig(**self.promoGamesConf[promoId])
+                self.promoGames.update({
+                    promoId: promoGame
+                })
+            else:
+                if promoId in self.promoGames:
+                    self.promoGames.remove(promoId)
+                # self.promoGames.setdefault(promoId, PromoGame(mainConfig=self, **self.promoGamesConf[promoId]))
+        logger.info("<blue>" + "Promo games login timeout...".ljust(30, " ") + "\t~120 sec</blue>")
+        sleep(120)
+        logger.info("-" * SEP_LENGTH + "\n")
+        
+    def claimPromoCode(self, promoId: str, promoCode: str) -> None:
+        clientsList = [client for client in self.clients \
+                       if (not client.getPromoGameByID(promoId) is None) and client.getPromoGameByID(promoId).isActive]
+        choices(clientsList, k=1)[0].claimPromoCode(promoId, promoCode)
+        
     @property
-    def lenClients(self):
+    def lenClients(self) -> int:
         if not hasattr(self, "_clients"):
             return 0
         return len(self._clients)
         
     @property
-    def clients(self):
+    def clients(self) -> list:
         if not hasattr(self, "_clients"):
             return []
         return self._clients
