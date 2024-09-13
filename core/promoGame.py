@@ -63,8 +63,9 @@ class PromoGame():
                             "{rC}".format(rC=retryCount).rjust(2, " ") + " / " +
                             "{rM}".format(rM=retryMax).rjust(2, " ") + " (retryDelay: ~" +
                             "{dR}".format(dR=delayRetry) + " sec)")
-                sleep(delayRetry)
                 self._updatePromoGameData(self.registerEvent())
+                if not self.hasCode:
+                    sleep(delayRetry)
                 retryCount += 1
 
             if self.hasCode:
