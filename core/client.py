@@ -31,6 +31,7 @@ class Client():
         self.name = kwargs.get("name")
         self._promoGames: dict[str, dict] = {}
         self._miniGames: dict[str, dict] = {}
+        self.upgradesCooldown: list[dict] = []
         self.setInitValues(mainConfig=mainConfig, **kwargs)
         logger.info(f"{self.name}".ljust(30, " ") + f"\t<green>added</green>")
 
@@ -58,27 +59,13 @@ class Client():
             if defaultDelay > self.upgradesCooldown[0]["cooldownSeconds"]:
                 defaultDelay = self.upgradesCooldown[0]["cooldownSeconds"]
         miniGamesList = [self.getMiniGameByID(miniGameId).minDelay for miniGameId in self.miniGames \
-            if (not self.getMiniGameByID(miniGameId) is None) and self.getMiniGameByID(miniGameId).isStarted]
+            if (not self.getMiniGameByID(miniGameId) is None) and \
+            (self.getMiniGameByID(miniGameId).isStarted or self.getMiniGameByID(miniGameId).isCooldown)]
         miniGamesList.sort()
         if miniGamesList:
-            miniGame = self.getMiniGameByID(miniGamesList[0])
-            if defaultDelay > miniGame.minDelay:
-                defaultDelay = miniGame.minDelay
+            if defaultDelay > miniGamesList[0]:
+                defaultDelay = miniGamesList[0]
         return defaultDelay
-        # choices(clientsList, k=1)[0].claimPromoCode(promoId, promoCode)
-        # miniGamesDelay = list(filter(lambda miniGame: miniGame.isStarted and not miniGame.isClaimed, self.miniGames))
-        # if not hasattr(self, "_minDelay"):
-        #     and:
-        #     return self.mainConfig.defaultDelay
-        # if self.upgradesCooldown:
-        #     if self.upgradesCooldown[0]["cooldownSeconds"] > self.mainConfig.defaultDelay:
-        #         return self.mainConfig.defaultDelay
-        # return self._minDelay
-    
-    # @minDelay.setter
-    # def minDelay(self, value: int) -> int:
-    #     if self.minDelay > value:
-    #         self._minDelay = value
     
     @property
     def promoGames(self) -> dict:
@@ -98,7 +85,6 @@ class Client():
 
     @logger.catch
     def sync(self) -> None:
-        # self.minDelay = self.mainConfig.defaultDelay
         logger.info(f"<b>{self.name}</b>")
         logger.info("-" * SEP_LENGTH)
         
@@ -145,6 +131,9 @@ class Client():
                             if miniGameObj.isClaimed:
                                 logger.success("{gameId}".format(gameId=miniGameObj.id).ljust(30, " ") + "\t" +
                                                "Claimed (+{reward:,})".format(reward=miniGameObj.Reward).replace(",", " "))
+                        elif miniGameObj.isCooldown:
+                            logger.info("{gameId}".format(gameId=miniGameObj.id).ljust(30, " ") + "\t" + 
+                                        "<yellow>Game is on cooldown (delay: ~{miniGameDelay:.2f} sec)</yellow>".format(miniGameDelay=miniGameObj.remainSecondsToNextAttempt))
                         else:
                             miniGameObj.miniGameStart()
                             logger.info("{gameId}".format(gameId=miniGameObj.id).ljust(30, " ") + "\t" + 
@@ -357,11 +346,10 @@ class Client():
         if "dailyKeysMiniGames" in data:
             miniGameData = data["dailyKeysMiniGames"]
             if not "id" in miniGameData:
-                with open(f"debug/{int(time())}_minigame.json", "w") as miniGameFile:
-                    miniGameFile.write(json.dumps(miniGameData, indent=4))
                 for miniGameId in miniGameData:
                     self.miniGames.update({
-                        miniGameId: self.miniGames.get(miniGameId, ClientMiniGame(self, **miniGameData[miniGameId]))
+                        miniGameId: ClientMiniGame(self, **miniGameData[miniGameId])
+                        # miniGameId: self.miniGames.get(miniGameId, ClientMiniGame(self, **miniGameData[miniGameId]))
                     })
 
         if "dailyCipher" in data:
@@ -376,7 +364,6 @@ class Client():
 
         if "upgradesForBuy" in data:
             self.upgradesForBuy = []
-            self.upgradesCooldown = []
             for item in data["upgradesForBuy"]:
                 if item["isAvailable"] and not item["isExpired"]:
                     if item["profitPerHourDelta"] > 0:

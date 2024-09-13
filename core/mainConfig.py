@@ -27,7 +27,6 @@ class MainConfig():
             logger.error(f"Wrong file {self._mainConfName}: {er}")
             return False
 
-        self.miniGamesConf = self.configRAW.get("miniGames")
         options = self.configRAW.get("options")
         if not options:
             return False
@@ -75,21 +74,15 @@ class MainConfig():
         logger.info("-" * SEP_LENGTH + "\n")
         
     def initPromoGames(self) -> None:
-        isTimeoutNeed = False
         for promoId in self.promoGamesConf:
-            if promoId in self.clientsPromoGames:
-                promoGame = self.promoGames.get(promoId, None)
-                if promoGame is None:
-                    isTimeoutNeed = True
-                    promoGame = PromoGame(mainConfig=self, **self.promoGamesConf[promoId])
-                promoGame.updateConfig(**self.promoGamesConf[promoId])
+            if promoId in self.clientsPromoGames and not promoId in self.promoGames:
                 self.promoGames.update({
-                    promoId: promoGame
+                    promoId: PromoGame(mainConfig=self, **self.promoGamesConf[promoId])
                 })
-            else:
-                if promoId in self.promoGames:
-                    self.promoGames.remove(promoId)
-                # self.promoGames.setdefault(promoId, PromoGame(mainConfig=self, **self.promoGamesConf[promoId]))
+            elif promoId in self.promoGames and not promoId in self.clientsPromoGames:
+                del self.promoGames[promoId]
+            elif promoId in self.promoGames:
+                self.promoGames[promoId].updateConfig(**self.promoGamesConf[promoId])
         logger.info("<blue>" + "Promo games login timeout...".ljust(30, " ") + "\t~120 sec</blue>")
         sleep(120)
         logger.info("-" * SEP_LENGTH + "\n")

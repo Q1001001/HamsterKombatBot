@@ -6,6 +6,7 @@ from .common import (request,
                     choices,
                     uuid4,
                     SEP_LENGTH,
+                    STRING,
                     PROMO_LOGIN,
                     PROMO_REGISTER_EVENT,
                     PROMO_CREATE_CODE)
@@ -89,7 +90,7 @@ class PromoGame():
         elif self.eventIdType == "timestamp":
             eventId = str(int(time() * 1000))
         elif self.eventIdType == "16x2str":
-            eventId = f"{''.join(choices('abcdefghijklmnopqrstuvwxyz0123456789', k=16))}-{''.join(choices('abcdefghijklmnopqrstuvwxyz0123456789', k=16))}"
+            eventId = f"{''.join(choices(STRING, k=16))}-{''.join(choices(STRING, k=16))}"
         userData = {
             "promoId": self.promoId,
             "eventId": eventId,
@@ -104,11 +105,11 @@ class PromoGame():
     def loginClient(self) -> dict:
         clientID = f"{int(time() * 1000)}-{''.join(str(randint(0, 9)) for _ in range(19))}"
         if self.clientIdType == "32str":
-            clientID = "".join(choices("abcdefghijklmnopqrstuvwxyz0123456789", k=32))
+            clientID = "".join(choices(STRING, k=32))
         elif self.clientIdType == "16str":
-            clientID = "".join(choices("abcdefghijklmnopqrstuvwxyz0123456789", k=16))
+            clientID = "".join(choices(STRING, k=16))
         elif self.clientIdType == "5+32str":
-            self.clientIdType == f"{''.join(choices('abcdefghijklmnopqrstuvwxyz0123456789', k=5))}_{''.join(choices('abcdefghijklmnopqrstuvwxyz0123456789', k=32))}"
+            self.clientIdType == f"{''.join(choices(STRING, k=5))}_{''.join(choices(STRING, k=32))}"
         else:
             clientID = str(uuid4())
 

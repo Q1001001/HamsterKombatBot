@@ -38,6 +38,8 @@ PROMO_CREATE_CODE = PROMO_DOMAIN + "/create-code"
 
 SEP_LENGTH = 75
 
+STRING = "abcdefghijklmnopqrstuvwxyz0123456789"
+
 CLIENT_LEVEL = {
     1: "Bronze",
     2: "Silver",

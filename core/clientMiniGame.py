@@ -38,12 +38,17 @@ class ClientMiniGame():
         self.remainSeconds = kwargs.get("remainSeconds")
         self.remainSecondsToNextAttempt = kwargs.get("remainSecondsToNextAttempt")
         self.remainPoints = kwargs.get("remainPoints")
-        # self.minDelay = self.remainSecondsToGuess - randint(30)
-        # self.minDelay = self.parentObj.mainConfig.miniGamesConf[self.id].get("delay", 10)
     
     @property
     def minDelay(self) -> int:
-        return self.remainSecondsToGuess - randint(30)
+        if not self.isClaimed:
+            if self.isCooldown:
+                if self.remainSecondsToNextAttempt < self.parentObj.mainConfig.defaultDelay:
+                    return self.remainSecondsToNextAttempt
+            elif self.isStarted:
+                if self.remainSecondsToGuess < self.parentObj.mainConfig.defaultDelay:
+                    return self.remainSecondsToGuess - 30
+        return self.parentObj.mainConfig.defaultDelay
         
     @property
     def Reward(self) -> float:
@@ -68,13 +73,12 @@ class ClientMiniGame():
         ]).encode()
         return b64encode(miniGameCipher).decode()
     
-    def miniGameStart(self) -> None:
+    def miniGameStart(self) -> dict:
         userData = {
             "miniGameId": self.id
         }
-        data = self.updateState(request(url=START_MINI_GAME, headers=self.parentObj.userHeaders, data=userData))
-        with open(f"debug/{int(time())}_START_MINI_GAME.json", "w") as miniGameFile:
-                    miniGameFile.write(json.dumps(data, indent=4))
+        return self.updateState(request(url=START_MINI_GAME, headers=self.parentObj.userHeaders, data=userData))
+
                     
     def claimMiniGame(self) -> dict:
         userData = {
@@ -85,18 +89,22 @@ class ClientMiniGame():
     
     @property
     def isStarted(self):
-        try:
-            if self.lastStartAt + self.remainSecondsToGuess > time():
-                return True
-        except Exception:
-            return False
+        if not self.isClaimed:
+            try:
+                if self.remainSecondsToGuess > 0 and \
+                ((self.remainSecondsToGuess != self.remainSecondsToNextAttempt) or \
+                    (self.remainSecondsToGuess == self.remainSecondsToNextAttempt == self.remainSeconds)):
+                    return True
+            except Exception:
+                return False
         return False
     
     @property
     def isCooldown(self):
         if not self.isClaimed:
             try:
-                if self.lastStartAt + self.remainSecondsToGuess > time():
+                if self.remainSecondsToNextAttempt > 0 and \
+                self.remainSecondsToGuess != self.remainSecondsToNextAttempt:
                     return True
             except Exception:
                 return False
