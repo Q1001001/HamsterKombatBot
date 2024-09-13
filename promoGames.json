@@ -57,7 +57,7 @@
         "eventOrigin": "undefined",
         "eventType": "hitStatue",
         "delay": 300,
-        "delayRetry": 30
+        "delayRetry": 20
     },
     "dc128d28-c45b-411c-98ff-ac7726fbaea4": {
         "title": "Merge Away",
@@ -109,7 +109,7 @@
         "appToken": "ef319a80-949a-492e-8ee0-424fb5fc20a6",
         "promoId": "ef319a80-949a-492e-8ee0-424fb5fc20a6",
         "userAgent": "UnityPlayer/2021.3.17f1 (UnityWebRequest/1.0, libcurl/7.84.0-DEV)",
-        "x-unity-version": "2021.3.17f1",
+        "x-unity-version": ": 2021.3.17f1",
         "clientOrigin": "android",
         "clientIdType": "type1",
         "clientVersion": null,
@@ -192,7 +192,7 @@
         "eventOrigin": "undefined",
         "eventType": null,
         "delay": 500,
-        "delayRetry": 130
+        "delayRetry": 20
     },
     "112887b0-a8af-4eb2-ac63-d82df78283d9": {
         "title": "Fluff Crusade",
@@ -207,7 +207,7 @@
         "eventOrigin": "undefined",
         "eventType": null,
         "delay": 500,
-        "delayRetry": 25
+        "delayRetry": 20
     },
     "04ebd6de-69b7-43d1-9c4b-04a6ca3305af": {
         "title": "Stone Age",
@@ -222,7 +222,7 @@
         "eventOrigin": "undefined",
         "eventType": null,
         "delay": 500,
-        "delayRetry": 25
+        "delayRetry": 20
     },
     "bc72d3b9-8e91-4884-9c33-f72482f0db37": {
         "title": "Bouncemasters",
@@ -237,6 +237,6 @@
         "eventOrigin": "undefined",
         "eventType": "test",
         "delay": 600,
-        "delayRetry": 30
+        "delayRetry": 20
     }
 }

@@ -23,19 +23,6 @@ Use it at your own risk!
     },
 ```
 
-#### mini Games options
-
-```text
-"miniGames": {
-        "Tiles": {                  // Mini Game ID
-            "delay": 3600           // Delay in seconds between starting the game and receiving the reward
-        },
-        "Candles": {                // Mini Game ID
-            "delay": 15             // Delay in seconds between starting the game and receiving the reward
-        }
-    },
-```
-
 #### User account options
 
 ```text

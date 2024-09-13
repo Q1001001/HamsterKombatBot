@@ -8,14 +8,6 @@
         "enablePromoGames": true,
         "defaultDelay": 3600 
     },
-    "miniGames": {
-        "Tiles": {
-            "delay": 3600
-        },
-        "Candles": {
-            "delay": 15
-        }
-    },
     "clients": {
         "YOUR USER NAME": {
             "name": "", 
