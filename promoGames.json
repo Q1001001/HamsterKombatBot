@@ -251,7 +251,7 @@
         "eventIdType": "uuid",
         "eventOrigin": "undefined",
         "eventType": "undefined",
-        "delay": 30,
-        "delayRetry": 30
+        "delay": 400,
+        "delayRetry": 20
     }
 }
