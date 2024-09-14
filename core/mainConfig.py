@@ -83,8 +83,9 @@ class MainConfig():
                 del self.promoGames[promoId]
             elif promoId in self.promoGames:
                 self.promoGames[promoId].updateConfig(**self.promoGamesConf[promoId])
+        sleep(1)
         logger.info("<blue>" + "Promo games login timeout...".ljust(30, " ") + "\t~120 sec</blue>")
-        sleep(120)
+        sleep(119)
         logger.info("-" * SEP_LENGTH + "\n")
         
     def claimPromoCode(self, promoId: str, promoCode: str) -> None:
