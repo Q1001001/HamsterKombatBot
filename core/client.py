@@ -6,6 +6,8 @@ from .common import (logger,
                     datetime,
                     json,
                     b64decode,
+                    urllib,
+                    LOGIN,
                     SEP_LENGTH,
                     CLIENT_LEVEL,
                     GET_PROMOS,
@@ -27,30 +29,35 @@ from .clientMiniGame import ClientMiniGame
 
 
 class Client():
-    def __init__(self, mainConfig: object, **kwargs):
-        self.name = kwargs.get("name")
-        self._promoGames: dict[str, dict] = {}
-        self._miniGames: dict[str, dict] = {}
-        self.upgradesCooldown: list[dict] = []
-        self.setInitValues(mainConfig=mainConfig, **kwargs)
-        logger.info(f"{self.name}".ljust(30, " ") + f"\t<green>added</green>")
-
-    def __del__(self):
-        logger.info(f"{self.name}".ljust(30, " ") + f"\t<red>removed</red>")
-        
-    def setInitValues(self, mainConfig: object, **kwargs) -> None:
+    def __init__(self, mainConfig: object, clientName: str, clientToken: str):
         self.mainConfig = mainConfig
-        self.token = kwargs.get("token")
-        self.limitCoinPrice = kwargs.get("limitCoinPrice")
-        self.minBalance = kwargs.get("minBalance")
-        self.excludeItems: list[str] = []
-        if kwargs.get("excludeItems"):
-            self.excludeItems.extend(kwargs.get("excludeItems"))
+        self.name = clientName
+        self.token = clientToken
+        self.setConfig(self.mainConfig)
         self.userHeaders = {
             "Authorization": self.token,
             "Accept": "application/json",
             "Content-Type": "application/json",
         }
+        self.__promoGames: dict[str, dict] = {}
+        self.__miniGames: dict[str, dict] = {}
+        self.upgradesCooldown: list[dict] = []
+        logger.info(f"{self.name}".ljust(30, " ") + f"\t<green>added</green>")
+
+    def __del__(self):
+        logger.info(f"{self.name}".ljust(30, " ") + f"\t<red>removed</red>")
+        
+    def clientLogin(self) -> None:
+        userData = {
+            "initDataRaw": self.query
+        }
+        return request(url=LOGIN, headers=self.userHeaders, data=userData)
+        
+    def setConfig(self, mainConfig: object) -> None:
+        configData = mainConfig.configRAW["clients"][self.name]
+        self.limitCoinPrice = configData.get("limitCoinPrice")
+        self.minBalance = configData.get("minBalance")
+        self.excludeItems = configData.get("excludeItems", [])
         
     @property
     def minDelay(self) -> int:
@@ -66,18 +73,11 @@ class Client():
             if defaultDelay > miniGamesList[0]:
                 defaultDelay = miniGamesList[0]
         return defaultDelay
-    
+
     @property
     def promoGames(self) -> dict:
-        if not hasattr(self, "_promoGames"):
-            return {}
-        return self._promoGames
-    
-    def updateConfig(self, mainConfig: object, clients: dict) -> None:
-        clientData = clients[self.name]
-        if clientData:
-            self.setInitValues(mainConfig, **clientData)
-    
+        return self.__promoGames
+
     def getPromoGameByID(self, promoID: str) -> object:
         if promoID in self.promoGames:
             return self.promoGames.get(promoID, None)
@@ -300,9 +300,7 @@ class Client():
     
     @property
     def miniGames(self) -> dict:
-        if not hasattr(self, "_miniGames"):
-            return {}
-        return self._miniGames
+        return self.__miniGames
     
     def getMiniGameByID(self, miniGameID: str) -> object:
         if miniGameID in self.miniGames:
@@ -315,6 +313,9 @@ class Client():
         if "error_message" in data:
             logger.error(data["error_message"])
             return False
+        
+        if "authToken" in data:
+            self.token = f"Bearer {data['authToken']}"
 
         if "clickerUser" in data:
             clickerUser = data["clickerUser"]
