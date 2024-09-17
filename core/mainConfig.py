@@ -64,13 +64,9 @@ class MainConfig():
             return {}
         return self._promoGames
     
-    # @promoGames.setter
-    # def promoGames(self, value):
-    #     self._promoGames = value
-    
     def initClients(self) -> None:
         clients = self.configRAW["clients"]
-        self._clients = [Client(mainConfig=self, **clients[user]) for user in clients]
+        self._clients = [Client(mainConfig=self, clientName=user, clientToken=clients[user]["token"]) for user in clients]
         logger.info("-" * SEP_LENGTH + "\n")
         
     def initPromoGames(self) -> None:
@@ -84,8 +80,9 @@ class MainConfig():
             elif promoId in self.promoGames:
                 self.promoGames[promoId].updateConfig(**self.promoGamesConf[promoId])
         sleep(1)
+        sleep(1)
         logger.info("<blue>" + "Promo games login timeout...".ljust(30, " ") + "\t~120 sec</blue>")
-        sleep(119)
+        sleep(118)
         logger.info("-" * SEP_LENGTH + "\n")
         
     def claimPromoCode(self, promoId: str, promoCode: str) -> None:
@@ -142,20 +139,20 @@ class MainConfig():
                     logger.info(f"{confItem}".ljust(30, " ") + f"\t<green>{self.__getattribute__(confItem)}</green>")
                         
         configData = self.configRAW
-        if self.clients:
-            clientsNames = [client.name for client in self.clients]
-            for clientName in clientsNames:
-                if not clientName in configData["clients"]:
-                    clientObj = self.getHamsterByName(clientName)
-                    self.clients.remove(clientObj)
+        clientsNames = [client.name for client in self.clients]
+        for clientName in clientsNames:
+            if not clientName in configData["clients"]:
+                clientObj = self.getHamsterByName(clientName)
+                self.clients.remove(clientObj)
+                del clientObj
 
         for clientName in configData["clients"]:
             clientObj = self.getHamsterByName(clientName)
             if clientObj:
-                clientObj.updateConfig(self, configData["clients"])
+                clientObj.setConfig(mainConfig=self)
                 logger.info(f"{clientName}".ljust(30, " ") + "\tUpdated")
             else:
-                self.clients.append(Client(mainConfig=self, **configData["clients"][clientName]))
+                self.clients.append(Client(mainConfig=self, clientName=configData["clients"][clientName]["name"], clientToken=configData["clients"][clientName]["token"]))
         logger.info("-" * SEP_LENGTH + "\n\n")
 
     @logger.catch
