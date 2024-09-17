@@ -51,7 +51,7 @@ class PromoGame():
     def genPromoKey(self) -> str:
         logger.info(f"Generate {self.title} promo-key")
         promoKey = ""
-        if self.clientToken:
+        if hasattr(self, "clientToken"):
             self.userHeaders.update({
                 "Authorization": f"Bearer {self.clientToken}"
             })
