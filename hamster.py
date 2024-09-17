@@ -10,7 +10,6 @@ def main():
     HamsterConfig = MainConfig()
     HamsterConfig.loadConfig()
     HamsterConfig.initClients()
-    promoIndex = 0
     while True:
         try:
             clientIndex = 0
