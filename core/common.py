@@ -3,6 +3,7 @@ import sys
 import os
 import json
 import gc
+import urllib
 from uuid import uuid4
 from loguru import logger
 from fake_useragent import UserAgent
@@ -13,8 +14,9 @@ from base64 import b64decode, b64encode
 from hashlib import sha256
 
 DOMAIN = "https://api.hamsterkombatgame.io"
-PROMO_DOMAIN = "https://api.gamepromo.io/promo"
+PROMO_DOMAIN = "https://api.gamepromo.io/promo/1"
 ACCOUNT_INFO = DOMAIN + "/auth/account-info"
+LOGIN = DOMAIN + "/auth/auth-by-telegram-webapp"
 BASE_URL = DOMAIN + "/clicker"
 UPGRADES_FOR_BUY = BASE_URL + "/upgrades-for-buy"
 BUY_UPGRADE = BASE_URL + "/buy-upgrade"
@@ -95,6 +97,10 @@ def request(method: str = "POST", url: str = "", headers: dict = None, data: dic
         else:
             err_msg = f"Invalid method: {method}"
             return {"error_message": err_msg}
+        response.raise_for_status()
+        if response.status_code != 200:
+             err_msg = f"Error: {response.status_code} {response.reason}"
+             return {"error_message": err_msg}
         return response.json()
     except Exception as e:
         err_msg = f"Error: {e}"
