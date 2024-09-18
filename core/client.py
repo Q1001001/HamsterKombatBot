@@ -46,12 +46,42 @@ class Client():
 
     def __del__(self):
         logger.info(f"{self.name}".ljust(30, " ") + f"\t<red>removed</red>")
-        
-    def clientLogin(self) -> None:
+    
+    @classmethod
+    @logger.catch
+    def authByQueryId(cls, mainConfig: object, clientName: str, queryId: str) -> object:
+        decodedQuery = urllib.parse.unquote(urllib.parse.unquote(queryId))
+        tgWebAppData = decodedQuery.split("&tgWebAppVersion")[0]
+        if "tgWebAppData=" in tgWebAppData:
+            tgWebAppData = tgWebAppData.replace("tgWebAppData=", "")
+        userObject = tgWebAppData.split("user=")[1].split("&")[0]
+        encodedUserObject = urllib.parse.quote(userObject)
+        tgWebAppData = tgWebAppData.replace(userObject, encodedUserObject)
+
         userData = {
-            "initDataRaw": self.query
+                "initDataRaw": tgWebAppData,
+                "fingerprint": {},
+            }
+
+        userHeaders = {
+            "Access-Control-Request-Headers": "authorization",
+            "Access-Control-Request-Method": "POST",
         }
-        return request(url=LOGIN, headers=self.userHeaders, data=userData)
+
+        request(method="OPTIONS", url=LOGIN, headers=userHeaders, data=userData)
+
+        userHeaders = {
+            "Authorization": "",
+            "Accept": "application/json",
+            "Content-Type": "application/json",
+        }
+        respData = request(url=LOGIN, headers=userHeaders, data=userData)
+        if "authToken" in respData:
+            clientToken = f"Bearer {respData['authToken']}"
+            return cls(mainConfig=mainConfig, clientName=clientName, clientToken=clientToken)
+        else:
+            logger.error(f"{clientName}".ljust(30, " ") + f"\t<red>failed to get user token</red>")
+            return
         
     def setConfig(self, mainConfig: object) -> None:
         configData = mainConfig.configRAW["clients"][self.name]

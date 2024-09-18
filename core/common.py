@@ -94,14 +94,18 @@ def request(method: str = "POST", url: str = "", headers: dict = None, data: dic
                 url, headers=defaultHeaders, data=json.dumps(data))
         elif method == "OPTIONS":
             response = requests.options(url, headers=defaultHeaders)
+            response.raise_for_status()
+            return {"OPTIONS": response.status_code}
         else:
             err_msg = f"Invalid method: {method}"
             return {"error_message": err_msg}
         response.raise_for_status()
-        if response.status_code != 200:
-             err_msg = f"Error: {response.status_code} {response.reason}"
-             return {"error_message": err_msg}
-        return response.json()
+        try:
+            jsonData = json.loads(response.text)
+        except json.decoder.JSONDecodeError as jsonErr:
+            jsonData = {"error_message": f"Error: {jsonErr}"}
+        finally:
+            return jsonData
     except Exception as e:
         err_msg = f"Error: {e}"
         return {"error_message": err_msg}

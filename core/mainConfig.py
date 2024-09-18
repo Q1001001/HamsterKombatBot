@@ -66,7 +66,9 @@ class MainConfig():
     
     def initClients(self) -> None:
         clients = self.configRAW["clients"]
-        self._clients = [Client(mainConfig=self, clientName=user, clientToken=clients[user]["token"]) for user in clients]
+        self._clients = [Client(mainConfig=self, clientName=user, clientToken=clients[user]["token"]) for user in clients if clients[user].get("token") is not None]
+        self._clients.extend([Client.authByQueryId(mainConfig=self, clientName=user, queryId=clients[user]["queryId"]) for user in clients if (clients[user].get("queryId") is not None and clients[user].get("token") is None)])
+        self._clients = list(filter(lambda client: client is not None, self._clients))
         logger.info("-" * SEP_LENGTH + "\n")
         
     def initPromoGames(self) -> None:
