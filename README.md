@@ -30,12 +30,14 @@ Use it at your own risk!
         "YOUR USER NAME": {
             "name": "",             // Your user name
             "token": "",            // Your tokent like "Bearer 123123..."
+            "queryId": "",          // Your query id. You can use queryId auth if you don't have a token.
             "limitCoinPrice": 1000, // Limit of coin price to buy a card. coin price = card price / card profitPerHourDelta
             "minBalance": 0,        // Minimum Maintained Balance
             "excludeItems": []      // OPTIONAL! Cards id to exclude upgrade
         }
     }
 ```
+**_NOTE:_**  "token" must be absent if you use queryId auth.
 
 ## Installation
 
