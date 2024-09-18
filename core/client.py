@@ -167,7 +167,7 @@ class Client():
                         else:
                             miniGameObj.miniGameStart()
                             logger.info("{gameId}".format(gameId=miniGameObj.id).ljust(30, " ") + "\t" + 
-                                        "<green>Game started (delay: ~{miniGameDelay} sec)</green>".format(miniGameDelay=miniGameObj.minDelay))
+                                        "<green>Game started (delay: ~{miniGameDelay:.2f} sec)</green>".format(miniGameDelay=miniGameObj.minDelay))
                             # self.minDelay = miniGameObj.minDelay
             logger.info("-" * SEP_LENGTH)
 
