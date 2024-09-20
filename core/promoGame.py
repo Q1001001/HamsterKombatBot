@@ -5,6 +5,7 @@ from .common import (request,
                     randint,
                     choices,
                     uuid4,
+                    ProgressBar,
                     SEP_LENGTH,
                     STRING,
                     PROMO_LOGIN,
@@ -56,27 +57,35 @@ class PromoGame():
             self.userHeaders.update({
                 "Authorization": f"Bearer {self.clientToken}"
             })
+            
             retryCount = 1
             retryMax = int(self.delay / self.delayRetry)
+            ProgressBar(0, retryMax, prefix = " Progress:", suffix = "Complete", length = 50)
             while retryCount <= retryMax and not self.hasCode and self.clientToken:
                 delayRetry = self.delayRetry + randint(0, 5)
-                logger.info("Attempt to register an event " +
-                            "{rC}".format(rC=retryCount).rjust(2, " ") + " / " +
-                            "{rM}".format(rM=retryMax).rjust(2, " ") + " (retryDelay: ~" +
-                            "{dR}".format(dR=delayRetry) + " sec)")
+                # logger.info("Attempt to register an event " +
+                #             "{rC}".format(rC=retryCount).rjust(2, " ") + " / " +
+                #             "{rM}".format(rM=retryMax).rjust(2, " ") + " (retryDelay: ~" +
+                #             "{dR}".format(dR=delayRetry) + " sec)")
                 self._updatePromoGameData(self.registerEvent())
                 if not self.hasCode:
+                    ProgressBar(retryCount + 1, retryMax, prefix = " Progress:", suffix = "Complete", length = 50)
                     sleep(delayRetry)
                 retryCount += 1
 
             if self.hasCode:
-                logger.success(f"<green>Event registered successfully.</green>")
+                logger.success(f"<green>Event registered successfully.</green>".ljust(SEP_LENGTH, " "))
                 self._updatePromoGameData(self.createCode())
                 promoKey = self.promoCode
                 if promoKey:
                     logger.success(f"<green>{promoKey}</green>")
                     self.hasCode = False
                     self.promoCode = ""
+            else:
+                logger.warning("{promoName}".format(promoName=promoClient.title).ljust(30, " ") + 
+                               "\tUnable to get a promo code " +  
+                               "{rM} attempts".format(rM=retryMax).rjust(2, " ") + " (retryDelay: ~" +
+                                "{dR}".format(dR=self.delayRetry) + " sec)")
         return promoKey
 
     def createCode(self) -> dict:

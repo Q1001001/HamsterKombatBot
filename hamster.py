@@ -27,9 +27,6 @@ def main():
                             promoKey = promoClient.genPromoKey()
                             if promoKey:
                                 HamsterConfig.claimPromoCode(clientPromoId, promoKey)
-                            else:
-                                logger.warning("{promoName}".format(promoName=promoClient.title).ljust(30, " ") + 
-                                               "\tUnable to get a promo code")
                             logger.info("-" * SEP_LENGTH + "\n")
                             
             remainsDelay = int((iterTime + minDelay) - time())
@@ -47,4 +44,4 @@ if __name__ == "__main__":
     try:
         main()
     except KeyboardInterrupt:
-        logger.info("Hamster Kombat Bot terminated")
+        logger.info("Hamster Kombat Bot terminated".ljust(SEP_LENGTH, " "))
