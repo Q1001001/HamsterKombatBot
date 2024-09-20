@@ -129,7 +129,9 @@ class Client():
         ]
         for requestURL in url_list:
             resultData = request(url=requestURL, headers=self.userHeaders)
-            self._updateClientUserData(resultData)
+            if not self._updateClientUserData(resultData):
+                self.lastSyncUpdate = 0
+                break
 
         if self.lastSyncUpdate == 0:
             logger.error("Unable to get account info. Next attempt at the next loop\n")
@@ -260,15 +262,18 @@ class Client():
             logger.info("-" * SEP_LENGTH + "\n")
         
     def claimPromoCode(self, promoId: str, promoKey: str) -> None:
-        self._updateClientUserData(self.promoCode(promoKey=promoKey))
-        if self._promoReward.get("type", "keys") == "keys":
-            logger.success("{name}".format(name=self.name).ljust(30, " ") + "\t" +
-                        "<green>{rKD}</green> / ".format(rKD=self.promoGames.get(promoId).receiveKeysToday) +
-                        "{kPD}".format(kPD=self.promoGames.get(promoId).keysPerDay))
+        if self._updateClientUserData(self.promoCode(promoKey=promoKey)):
+            if self._promoReward.get("type", "keys") == "keys":
+                logger.success("{name}".format(name=self.name).ljust(30, " ") + "\t" +
+                            "<green>{rKD}</green> / ".format(rKD=self.promoGames.get(promoId).receiveKeysToday) +
+                            "{kPD}".format(kPD=self.promoGames.get(promoId).keysPerDay))
+            else:
+                promoReward = self._promoReward["amount"]
+                logger.success("{name}".format(name=self.name).ljust(30, " ") + "\t" +
+                            "<green>+{promoReward:,}</green>".format(promoReward=promoReward).replace(",", " "))
         else:
-            promoReward = self._promoReward["amount"]
-            logger.success("{name}".format(name=self.name).ljust(30, " ") + "\t" +
-                        "<green>+{promoReward:,}</green>".format(promoReward=promoReward).replace(",", " "))
+            logger.warning("{name}".format(name=self.name).ljust(30, " ") + "\t" +
+                           "Unable to claim a promo code")
 
     def promoCode(self, promoKey: str) -> dict:
         userData = {
