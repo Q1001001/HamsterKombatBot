@@ -130,6 +130,9 @@ class Client():
             resultData = request(url=requestURL, headers=self.userHeaders)
             self._updateClientUserData(resultData)
 
+        if hasattr(self, "lastSyncUpdate"):
+            logger.info(f"Status as of {datetime.fromtimestamp(self.lastSyncUpdate).strftime('%d.%m.%Y, %H:%M:%S')}\n")
+                
         if self.mainConfig.enableTaps:
             if self.availableTaps > self.maxTaps / 2:
                 self._updateClientUserData(self.tap())
