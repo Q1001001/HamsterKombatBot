@@ -50,6 +50,7 @@ class PromoGame():
     @logger.catch
     def genPromoKey(self) -> str:
         logger.info(f"Generate {self.title} promo-key")
+        self.hasCode = False
         promoKey = ""
         if hasattr(self, "clientToken"):
             self.userHeaders.update({
