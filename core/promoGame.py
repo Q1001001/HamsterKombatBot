@@ -82,7 +82,7 @@ class PromoGame():
                     self.hasCode = False
                     self.promoCode = ""
             else:
-                logger.warning("{promoName}".format(promoName=promoClient.title).ljust(30, " ") + 
+                logger.warning("{promoName}".format(promoName=self.title).ljust(30, " ") + 
                                "\tUnable to get a promo code " +  
                                "{rM} attempts".format(rM=retryMax).rjust(2, " ") + " (retryDelay: ~" +
                                "{dR}".format(dR=self.delayRetry) + " sec)".ljust(SEP_LENGTH, " "))
