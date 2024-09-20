@@ -55,7 +55,7 @@ class MainConfig():
     def clientsPromoGames(self):
         promoGames: list = []
         for client in self.clients:
-            promoGames.extend([promoId for promoId in client.promoGames if client.getPromoGameByID(promoId).isActive])
+            promoGames.extend([promoId for promoId in client.promoGames if client.getPromoGameByID(promoId).isActive and client.lastSyncUpdate > 0])
         return list(set(promoGames))
     
     @property
@@ -89,7 +89,7 @@ class MainConfig():
         
     def claimPromoCode(self, promoId: str, promoCode: str) -> None:
         clientsList = [client for client in self.clients \
-                       if (not client.getPromoGameByID(promoId) is None) and client.getPromoGameByID(promoId).isActive]
+                       if (not client.getPromoGameByID(promoId) is None) and client.getPromoGameByID(promoId).isActive and client.lastSyncUpdate > 0]
         choices(clientsList, k=1)[0].claimPromoCode(promoId, promoCode)
         
     @property

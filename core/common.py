@@ -110,8 +110,7 @@ def request(method: str = "POST", url: str = "", headers: dict = None, data: dic
         err_msg = f"Error: {e}"
         return {"error_message": err_msg}
     
-# Print iterations progress
-def ProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, length = 100, fill = '█', printEnd = "\r"):
+def ProgressBar (iteration, total, prefix = "", suffix = "", decimals = 1, length = 100, fill = "█", printEnd = "\r"):
     """
     Call in a loop to create terminal progress bar
     @params:
@@ -126,5 +125,5 @@ def ProgressBar (iteration, total, prefix = '', suffix = '', decimals = 1, lengt
     """
     percent = ("{0:." + str(decimals) + "f}").format(100 * (iteration / float(total)))
     filledLength = int(length * iteration // total)
-    bar = fill * filledLength + '-' * (length - filledLength)
-    print(f'\r{prefix} |{bar}| {percent}% {suffix}', end = printEnd)
+    bar = fill * filledLength + "-" * (length - filledLength)
+    print(f"\r{38 * ' '}{prefix} |{bar}| {percent}% {suffix}", end = printEnd)

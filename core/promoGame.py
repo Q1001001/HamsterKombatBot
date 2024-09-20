@@ -60,7 +60,7 @@ class PromoGame():
             
             retryCount = 1
             retryMax = int(self.delay / self.delayRetry)
-            ProgressBar(0, retryMax, prefix = " Progress:", suffix = "Complete", length = 50)
+            ProgressBar(0, retryMax, prefix = "", suffix = "", length = 50)
             while retryCount <= retryMax and not self.hasCode and self.clientToken:
                 delayRetry = self.delayRetry + randint(0, 5)
                 # logger.info("Attempt to register an event " +
@@ -69,7 +69,7 @@ class PromoGame():
                 #             "{dR}".format(dR=delayRetry) + " sec)")
                 self._updatePromoGameData(self.registerEvent())
                 if not self.hasCode:
-                    ProgressBar(retryCount + 1, retryMax, prefix = " Progress:", suffix = "Complete", length = 50)
+                    ProgressBar(retryCount + 1, retryMax, prefix = "", suffix = "", length = 50)
                     sleep(delayRetry)
                 retryCount += 1
 
@@ -78,14 +78,16 @@ class PromoGame():
                 self._updatePromoGameData(self.createCode())
                 promoKey = self.promoCode
                 if promoKey:
-                    logger.success(f"<green>{promoKey}</green>")
+                    logger.success("<green>" + f"{promoKey}".ljust(SEP_LENGTH, " ") + "</green>")
                     self.hasCode = False
                     self.promoCode = ""
             else:
                 logger.warning("{promoName}".format(promoName=promoClient.title).ljust(30, " ") + 
                                "\tUnable to get a promo code " +  
                                "{rM} attempts".format(rM=retryMax).rjust(2, " ") + " (retryDelay: ~" +
-                                "{dR}".format(dR=self.delayRetry) + " sec)")
+                               "{dR}".format(dR=self.delayRetry) + " sec)".ljust(SEP_LENGTH, " "))
+        else:
+            logger.warning("Relogin at the next loop")
         return promoKey
 
     def createCode(self) -> dict:

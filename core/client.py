@@ -117,6 +117,7 @@ class Client():
     def sync(self) -> None:
         logger.info(f"<b>{self.name}</b>")
         logger.info("-" * SEP_LENGTH)
+        self.lastSyncUpdate = 0
         
         url_list = [
             SYNC,
@@ -130,8 +131,9 @@ class Client():
             resultData = request(url=requestURL, headers=self.userHeaders)
             self._updateClientUserData(resultData)
 
-        if hasattr(self, "lastSyncUpdate"):
-            logger.info(f"Status as of {datetime.fromtimestamp(self.lastSyncUpdate).strftime('%d.%m.%Y, %H:%M:%S')}\n")
+        if self.lastSyncUpdate == 0:
+            logger.error("Unable to get account info. Next attempt at the next loop\n")
+            return
                 
         if self.mainConfig.enableTaps:
             if self.availableTaps > self.maxTaps / 2:
